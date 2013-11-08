@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Some of these have to be build in a certain order
+
+(cd perl-digest-hmac && ./perl-digest-hmac.SlackBuild)
+installpkg /tmp/perl-digest-hmac-*-x86_64-1.txz
+
+(cd perl-Authen-SASL && ./perl-Authen-SASL.SlackBuild)
+installpkg /tmp/perl-Authen-SASL-*-x86_64-1.txz
+
+(cd Net-SSLeay && ./Net-SSLeay.SlackBuild)
+installpkg /tmp/Net-SSLeay-*-x86_64-1.txz
+
+(cd perl-IO-Socket-SSL && ./perl-IO-Socket-SSL.SlackBuild)
+installpkg /tmp/perl-IO-Socket-SSL-*-x86_64-1.txz
+
+(cd perl-Net-SMTP-SSL && ./perl-Net-SMTP-SSL.SlackBuild)
+installpkg /tmp/perl-Net-SMTP-SSL-*-x86_64-1.txz
+
