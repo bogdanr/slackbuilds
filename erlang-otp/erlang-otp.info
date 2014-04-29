@@ -1,0 +1,11 @@
+PRGNAM="erlang-otp"
+VERSION="16B03"
+HOMEPAGE="http://www.erlang.org"
+DOWNLOAD="http://www.erlang.org/download/otp_src_R16B03.tar.gz \
+          http://www.erlang.org/download/otp_doc_man_R16B03.tar.gz"
+MD5SUM="c330150913556a0fe73e57a441cb6375 \
+        55376d3b1994d083cd21c9d849517c6c"
+DOWNLOAD_x86_64=""
+MD5SUM_x86_64=""
+MAINTAINER="Bogdan Radulescu"
+EMAIL="bogdan@nimblex.net"
