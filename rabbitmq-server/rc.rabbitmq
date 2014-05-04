@@ -1,0 +1,19 @@
+#!/bin/bash
+
+case "$1" in
+  start)
+    su - rabbitmq -c "/usr/bin/rabbitmq-server -detached"
+    ;;
+  stop)
+    su - rabbitmq -c "/usr/bin/rabbitmqctl stop"
+    killall epmd
+    ;;
+  restart)
+    $0 stop
+    sleep 3
+    $0 start
+    ;;
+  *)
+    echo "usage: $0 {start|stop|restart}"
+esac
+

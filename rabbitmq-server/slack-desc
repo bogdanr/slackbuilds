@@ -1,0 +1,19 @@
+# HOW TO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.
+# Line up the first '|' above the ':' following the base package name, and
+# the '|' on the right side marks the last column you can put a character in.
+# You must make exactly 11 lines for the formatting to be correct.  It's also
+# customary to leave one space after the ':' except on otherwise blank lines.
+
+               |-----handy-ruler------------------------------------------------------|
+rabbitmq-server: rabbitmq-server
+rabbitmq-server:
+rabbitmq-server: The RabbitMQ server is an implementation of an AMQP (Advanced
+rabbitmq-server: Message Queuing Protocol) broker. It is written on top of the
+rabbitmq-server: widely-used Erlang-based Open Telecom Platform (OTP), and is
+rabbitmq-server: platform neutral.
+rabbitmq-server:
+rabbitmq-server:
+rabbitmq-server:
+rabbitmq-server:
+rabbitmq-server:

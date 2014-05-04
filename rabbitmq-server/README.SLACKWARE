@@ -1,0 +1,15 @@
+== README.SLACKWARE ==
+
+To start rabbitmq-server automatically at system startup, add the following to
+your system's /etc/rc.d/rc.local init script:
+
+  if [ -x /etc/rc.d/rc.rabbitmq ]; then
+    /etc/rc.d/rc.rabbitmq start
+  fi
+
+To stop rabbitmq-server automatically at system shutdown, add the following to
+your system's /etc/rc.d/rc.local_shutdown script:
+
+  if [ -x /etc/rc.d/rc.rabbitmq ]; then
+    /etc/rc.d/rc.rabbitmq stop
+  fi
