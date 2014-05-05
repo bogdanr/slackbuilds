@@ -1,0 +1,2 @@
+[server]
+datadir=/var/lib/mysql
