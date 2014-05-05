@@ -4,8 +4,8 @@
 # Written by Diogo Leal (diogo@diogoleal.com)
 # Maintained by Bogdan Radulescu (bogdan@nimblex.net)
 
-PRGNAM=libssh2
-VERSION=${VERSION:-1.4.3}
+PRGNAM=ceph
+VERSION=${VERSION:-0.67.8}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -55,16 +55,13 @@ CFLAGS="$SLKCFLAGS" \
 CXXFLAGS="$SLKCFLAGS" \
 ./configure \
   --prefix=/usr \
-  --enable-crypt-none \
-  --enable-mac-none \
-  --with-libgcrypt \
-  --with-openssl \
-  --with-libz \
   --libdir=/usr/lib${LIBDIRSUFFIX} \
   --sysconfdir=/etc \
   --localstatedir=/var \
   --mandir=/usr/man \
-  --docdir=/usr/doc/$PRGNAM-$VERSION
+  --docdir=/usr/doc/$PRGNAM-$VERSION \
+  --without-tcmalloc \
+  --without-libatomic-ops
 
 make
 make install DESTDIR=$PKG
