@@ -23,14 +23,14 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=systemd
-VERSION=${VERSION:-212}
+VERSION=${VERSION:-215}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
 # Automatically determine the architecture we're building on:
 if [ -z "$ARCH" ]; then
   case "$( uname -m )" in
-    i?86) ARCH=i486 ;;
+    i?86) ARCH=i686 ;;
     arm*) ARCH=arm ;;
     # Unless $ARCH is already set, use uname -m for all other archs:
        *) ARCH=$( uname -m ) ;;
@@ -62,7 +62,7 @@ rm -rf $PKG
 mkdir -p $TMP $PKG $OUTPUT
 cd $TMP
 rm -rf $PRGNAM-$VERSION
-tar xvf $CWD/$PRGNAM-$VERSION.tar.gz
+tar xvf $CWD/$PRGNAM-$VERSION.tar.xz
 cd $PRGNAM-$VERSION
 chown -R root:root .
 find . \
@@ -84,7 +84,6 @@ CXXFLAGS="$SLKCFLAGS" \
   --docdir=/usr/doc/$PRGNAM-$VERSION \
   --disable-gtk-doc-html \
   --with-rootprefix= \
-  --with-rootlibdir=/lib${LIBDIRSUFFIX} \
   --enable-split-usr \
   --enable-compat-libs
 
@@ -93,6 +92,7 @@ make
 make install DESTDIR=$PKG
 
 groupadd -f -g 60 systemd-journal
+groupadd -f -g 61 systemd-timesync
 
 # Strip binaries and libraries - this can be done with 'make install-strip'
 # in many source trees, and that's usually acceptable if so, but if not,
@@ -108,9 +108,7 @@ find $PKG/usr/man -type f -exec gzip -9 {} \;
 for i in $( find $PKG/usr/man -type l ) ; do ln -s $( readlink $i ).gz $i.gz ; rm $i ; done
 
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a \
-  NEWS README TODO \
-  $PKG/usr/doc/$PRGNAM-$VERSION
+cp -a NEWS README TODO $PKG/usr/doc/$PRGNAM-$VERSION
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 
 # Copy the slack-desc (and a custom doinst.sh if necessary) into ./install
