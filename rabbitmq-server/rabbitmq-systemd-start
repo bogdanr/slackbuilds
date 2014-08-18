@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Scripts to run by RabbitMQ systemd service
+# 
+# Needed argument: pre | post
+# 
+# pre mode  :  try to run useradd and fix perms
+# post mode :  not necessary so far
+# 
+
+rabbit_user() {    
+
+    grep -q rabbitmq /etc/passwd || useradd -d /var/lib/rabbitmq -s /bin/sh -r rabbitmq
+
+}
+
+nothing() {
+
+    echo "Nothing is necessary so far here."
+
+}
+
+# main
+case $1 in
+    "pre") rabbit_user ;;
+    "post") nothing ;;
+esac
+
+exit 0

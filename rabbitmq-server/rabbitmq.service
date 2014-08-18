@@ -4,12 +4,18 @@ After=network.target
 
 [Service]
 Type=simple
-User=rabbitmq
+#User=rabbitmq	# PermissionStartOnly doesn't seem to run as root ExecStartPre
 SyslogIdentifier=rabbitmq
 EnvironmentFile=/etc/rabbitmq/rabbitmq-env.conf
 
-ExecStart=/usr/sbin/rabbitmq-server
-ExecStop=/usr/sbin/rabbitmqctl stop
+# Execute pre and post scripts as root
+PermissionsStartOnly=true
+
+# Needed to create the rabbitmq user and group
+ExecStartPre=/usr/bin/rabbitmq-systemd-start pre
+
+ExecStart=/usr/bin/rabbitmq-server
+ExecStop=/usr/bin/rabbitmqctl stop
 
 [Install]
 WantedBy=multi-user.target
