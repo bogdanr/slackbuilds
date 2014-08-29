@@ -23,7 +23,7 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=systemd
-VERSION=${VERSION:-215}
+VERSION=${VERSION:-216}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -84,8 +84,11 @@ CXXFLAGS="$SLKCFLAGS" \
   --docdir=/usr/doc/$PRGNAM-$VERSION \
   --disable-gtk-doc-html \
   --with-rootprefix= \
+  --with-rootlibdir=/lib${LIBDIRSUFFIX} \
   --enable-split-usr \
-  --enable-compat-libs
+  --enable-compat-libs \
+  --enable-kdbus \
+  --disable-ldconfig
 
 # Compile the application and install it into the $PKG directory
 make
