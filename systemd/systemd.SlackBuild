@@ -2,7 +2,7 @@
 
 # Slackware build script for systemd
 
-# Copyright 2013 - 2014 Bogdan Radulescu, Bucharest, Romania
+# Copyright 2013 - 2015 Bogdan Radulescu, Bucharest, Romania
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -23,7 +23,7 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=systemd
-VERSION=${VERSION:-216}
+VERSION=${VERSION:-218}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -62,7 +62,7 @@ rm -rf $PKG
 mkdir -p $TMP $PKG $OUTPUT
 cd $TMP
 rm -rf $PRGNAM-$VERSION
-tar xvf $CWD/$PRGNAM-$VERSION.tar.xz
+tar xvf $CWD/$PRGNAM-$VERSION.tar.?z
 cd $PRGNAM-$VERSION
 chown -R root:root .
 find . \
