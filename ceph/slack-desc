@@ -6,14 +6,14 @@
 # customary to leave one space after the ':' except on otherwise blank lines.
 
        |-----handy-ruler------------------------------------------------------|
-libssh2: libssh2 (SSH2 library)
-libssh2:
-libssh2: libssh2 is a library implementing the SSH2 protocol, available under
-libssh2: the revised BSD license.
-libssh2:
-libssh2: Website: http://www.libssh2.org/
-libssh2: Mailing List: http://cool.haxx.se/mailman/listinfo/libssh2-devel
-libssh2:
-libssh2:
-libssh2:
-libssh2:
+ceph: ceph (filesystem)
+ceph:
+ceph: Ceph is a distributed object store and file system designed to provide
+ceph: excellent performance, reliability and scalability.
+ceph:
+ceph: Website: http://www.ceph.org/
+ceph: Mailing List: http://cool.haxx.se/mailman/listinfo/ceph-devel
+ceph:
+ceph:
+ceph:
+ceph:
