@@ -1,8 +1,8 @@
 #!/bin/sh
-
-# Slackware build script for pyparsing
-
-# Copyright 2008-2012 Heinz Wiesinger, Amsterdam, The Netherlands
+#
+# Slackware build script for ncdu
+#
+# Copyright 2009-2014  Erik W. Hanson, Minneapolis, MN, USA
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -22,8 +22,8 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-PRGNAM=pyparsing
-VERSION=${VERSION:-2.0.3}
+PRGNAM=ncdu
+VERSION=${VERSION:-1.10}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -42,19 +42,13 @@ OUTPUT=${OUTPUT:-/tmp}
 
 if [ "$ARCH" = "i486" ]; then
   SLKCFLAGS="-O2 -march=i486 -mtune=i686"
-  LIBDIRSUFFIX=""
 elif [ "$ARCH" = "i686" ]; then
   SLKCFLAGS="-O2 -march=i686 -mtune=i686"
-  LIBDIRSUFFIX=""
 elif [ "$ARCH" = "x86_64" ]; then
   SLKCFLAGS="-O2 -fPIC"
-  LIBDIRSUFFIX="64"
-else
-  SLKCFLAGS="-O2"
-  LIBDIRSUFFIX=""
 fi
 
-set -e
+set -eu
 
 rm -rf $PKG
 mkdir -p $TMP $PKG $OUTPUT
@@ -64,19 +58,29 @@ tar xvf $CWD/$PRGNAM-$VERSION.tar.gz
 cd $PRGNAM-$VERSION
 chown -R root:root .
 find -L . \
- \( -perm 777 -o -perm 775 -o -perm 750 -o -perm 711 -o -perm 555 -o -perm 511 \) \
- -exec chmod 755 {} \; -o \
- \( -perm 666 -o -perm 664 -o -perm 600 -o -perm 444 -o -perm 440 -o -perm 400 \) \
- -exec chmod 644 {} \;
+ \( -perm 777 -o -perm 775 -o -perm 750 -o -perm 711 -o -perm 555 \
+  -o -perm 511 \) -exec chmod 755 {} \; -o \
+ \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
+ -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
-python setup.py install --root=$PKG
+CFLAGS="$SLKCFLAGS" \
+./configure \
+  --prefix=/usr \
+  --sysconfdir=/etc \
+  --localstatedir=/var \
+  --mandir=/usr/man 
 
-find $PKG | xargs file | grep -e "executable" -e "shared object" | grep ELF \
-  | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
+make
+make install DESTDIR=$PKG
+
+find $PKG | xargs file | egrep "ELF.*executable" | cut -f 1 -d : \
+          | xargs strip --strip-unneeded 2> /dev/null
+
+gzip -9 $PKG/usr/man/man?/*
 
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a CHANGES LICENSE PKG-INFO README HowToUsePyparsing.html \
-  $PKG/usr/doc/$PRGNAM-$VERSION
+cp -a COPYING ChangeLog README \
+      $PKG/usr/doc/$PRGNAM-$VERSION
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 
 mkdir -p $PKG/install
