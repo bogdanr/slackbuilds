@@ -21,7 +21,7 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PKGNAM=mesa
-VERSION=10.2.6
+VERSION=10.3.7
 DEMOVERS=8.2.0
 BUILD=${BUILD:-1}
 
@@ -84,6 +84,8 @@ if /bin/ls $CWD/patches/*.patch 1> /dev/null 2> /dev/null ; then
   done
 fi
 
+./autogen.sh
+
 CFLAGS="$SLKCFLAGS" \
 ./configure \
   --prefix=/usr \
@@ -105,7 +107,7 @@ CFLAGS="$SLKCFLAGS" \
   --enable-dri3 \
   --enable-shared-glapi \
   --enable-gbm \
-  --enable-gallium-gbm \
+  --disable-gallium-gbm \
   --enable-glx \
   --enable-glx-tls \
   --enable-gles1 \

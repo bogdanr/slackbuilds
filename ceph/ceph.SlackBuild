@@ -4,7 +4,7 @@
 # Maintained by Bogdan Radulescu (bogdan@nimblex.net)
 
 PRGNAM=ceph
-VERSION=${VERSION:-0.67.11}
+VERSION=${VERSION:-0.94.1}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -62,7 +62,7 @@ CXXFLAGS="$SLKCFLAGS" \
   --without-tcmalloc \
   --without-libatomic-ops
 
-make
+make -j4
 make install DESTDIR=$PKG
 
 find $PKG | xargs file | grep -e "executable" -e "shared object" | grep ELF \
