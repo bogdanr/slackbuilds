@@ -25,7 +25,7 @@
 # ** Version 2014-01-11: Fixed broken 'GTK3=no' processing
 
 PRGNAM=gtk-vnc
-VERSION=${VERSION:-0.5.3}
+VERSION=${VERSION:-0.5.4}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
