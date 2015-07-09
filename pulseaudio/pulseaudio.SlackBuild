@@ -6,7 +6,7 @@
 # Maintained by Christoph Willing <chris.willing@iinet.net.au>
 
 PRGNAM=pulseaudio
-VERSION=${VERSION:-5.0}
+VERSION=${VERSION:-6.0}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
