@@ -33,7 +33,7 @@
 # 1.3   03-NOV-2013     updated to 1.6.1
 
 PRGNAM=qemu
-VERSION=${VERSION:-2.3.0}
+VERSION=${VERSION:-2.4.0}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -131,7 +131,7 @@ CXXFLAGS="$SLKCFLAGS" \
   --enable-system \
   --enable-kvm \
   --disable-debug-info \
-  --audio-drv-list=alsa,oss,sdl,esd \
+  --audio-drv-list=alsa,oss,sdl,pa \
   $targets \
   $with_spice \
   $with_usbredir \

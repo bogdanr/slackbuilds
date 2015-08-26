@@ -1,11 +1,16 @@
 #!/bin/sh
+# Slackware build script for libgnomecanvas
+#
+# Written by James Rich james@chowhouse.com
+#
+# Modified by the SlackBuilds.org project
+# (assumed to be public domain per our submission policy)
+# Modified by Frank Caraballo <fecaraballo{at}gmail{dot}com>
+#
+# Maintained by Erik Hanson <erik@slackbuilds.org>
 
-# Slackware build script for json-c
-
-# Written by crocket (crockabiscuit@gmail.com)
-
-PRGNAM=json-c
-VERSION=${VERSION:-0.12}
+PRGNAM=libgnomecanvas
+VERSION=${VERSION:-2.30.3}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -22,7 +27,7 @@ TMP=${TMP:-/tmp/SBo}
 PKG=$TMP/package-$PRGNAM
 OUTPUT=${OUTPUT:-/tmp}
 
-if [ "$ARCH" = "i686" ]; then
+if [ "$ARCH" = "i486" ]; then
   SLKCFLAGS="-O2 -march=i486 -mtune=i686"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "i686" ]; then
@@ -36,7 +41,7 @@ else
   LIBDIRSUFFIX=""
 fi
 
-set -e
+set -eu
 
 rm -rf $PKG
 mkdir -p $TMP $PKG $OUTPUT
@@ -58,18 +63,17 @@ CXXFLAGS="$SLKCFLAGS" \
   --libdir=/usr/lib${LIBDIRSUFFIX} \
   --sysconfdir=/etc \
   --localstatedir=/var \
-  --disable-static \
-  --mandir=/usr/man \
-  --docdir=/usr/doc/$PRGNAM-$VERSION 
+  --enable-glade \
+  --enable-static=no 
 
 make
 make install-strip DESTDIR=$PKG
 
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a \
-  AUTHORS COPYING ChangeLog INSTALL NEWS README* doc/html \
-  $PKG/usr/doc/$PRGNAM-$VERSION
+cp -a AUTHORS ChangeLog COPYING.LIB INSTALL NEWS README \
+  docs/reference/libgnomecanvas* $PKG/usr/doc/$PRGNAM-$VERSION
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
+ln -s /usr/share/gtk-doc/html/libgnomecanvas $PKG/usr/doc/$PRGNAM-$VERSION/html
 
 mkdir -p $PKG/install
 cat $CWD/slack-desc > $PKG/install/slack-desc

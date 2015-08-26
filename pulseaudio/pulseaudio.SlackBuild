@@ -85,7 +85,7 @@ CXXFLAGS="$SLKCFLAGS" \
   --with-access-group=audio
 
 make check
-make -j1
+make -j4
 make install-strip DESTDIR=$PKG
 
 mv $PKG/etc/pulse/client.conf $PKG/etc/pulse/client.conf.new
