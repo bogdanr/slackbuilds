@@ -25,7 +25,7 @@
 # Modified by Mario Preksavec <mario@slackware.hr>
 
 PRGNAM=gqrx
-VERSION=${VERSION:-2.3.2}
+VERSION=${VERSION:-2.5.3}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -62,7 +62,7 @@ rm -rf $PKG
 mkdir -p $TMP $PKG $OUTPUT
 cd $TMP
 rm -rf $PRGNAM-$VERSION
-tar xJf $CWD/$PRGNAM-$VERSION.tar.xz
+tar xf $CWD/$PRGNAM-$VERSION.tar.gz
 cd $PRGNAM-$VERSION
 chown -R root:root .
 find -L . \
@@ -78,7 +78,7 @@ qmake \
       QMAKE_LIBS="$SLKLDFLAGS" \
       QMAKE_CFLAGS="$SLKCFLAGS" \
       QMAKE_CXXFLAGS="$SLKCFLAGS" ..
-      make
+      make -j4
 
 # make install leaks, do it manually
 install -D -m 755 -p gqrx $PKG/usr/bin/gqrx
@@ -91,14 +91,14 @@ find $PKG -print0 | xargs -0 file | grep -e "executable" -e "shared object" | gr
 mkdir -p $PKG/usr/share/{applications,pixmaps}
 mkdir -p $PKG/usr/share/icons/hicolor/{16x16,32x32,48x48,64x64}/apps
 install -m644 gqrx.desktop $PKG/usr/share/applications/gqrx.desktop
-install -m644 icons/gqrx.svg $PKG/usr/share/pixmaps/gqrx.png
-install -m644 icons/gqrx.svg \
+install -m644 resources/icons/gqrx.svg $PKG/usr/share/pixmaps/gqrx.png
+install -m644 resources/icons/gqrx.svg \
   ${PKG}/usr/share/icons/hicolor/64x64/apps/gqrx.png
-convert icons/gqrx.svg -resize 16x16 \
+convert resources/icons/gqrx.svg -resize 16x16 \
   ${PKG}/usr/share/icons/hicolor/16x16/apps/gqrx.png
-convert icons/gqrx.svg -resize 32x32 \
+convert resources/icons/gqrx.svg -resize 32x32 \
   ${PKG}/usr/share/icons/hicolor/32x32/apps/gqrx.png
-convert icons/gqrx.svg -resize 48x48 \
+convert resources/icons/gqrx.svg -resize 48x48 \
   ${PKG}/usr/share/icons/hicolor/48x48/apps/gqrx.png
 
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
