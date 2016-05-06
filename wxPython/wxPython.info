@@ -1,0 +1,7 @@
+PRGNAM="wxPython"
+VERSION="3.0.2.0"
+HOMEPAGE="http://wxPython.org/"
+DOWNLOAD="http://downloads.sourceforge.net/wxpython/wxPython-src-3.0.2.0.tar.bz2"
+MD5SUM="922b02ff2c0202a7bf1607c98bbbbc04"
+MAINTAINER="Bogdan Radulescu"
+EMAIL="bogdan@nimblex.net"
