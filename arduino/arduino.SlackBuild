@@ -23,7 +23,7 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=arduino
-VERSION=${VERSION:-1.6.5}
+VERSION=${VERSION:-1.6.9}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -75,9 +75,9 @@ mv arduino dist examples hardware lib libraries reference tools $PKG/opt/$PRGNAM
 
 # Make it a bit more user friendly
 mkdir -p $PKG/usr/{bin,share/applications}
-sed "s/FULL_PATH/\/opt\/$PRGNAM/" arduino.desktop \
-  > $PKG/usr/share/applications/$PRGNAM.desktop
-ln -s /opt/$PRGNAM/arduino $PKG/usr/bin/$PRGNAM
+#sed "s/FULL_PATH/\/opt\/$PRGNAM/" arduino.desktop \
+#  > $PKG/usr/share/applications/$PRGNAM.desktop
+#ln -s /opt/$PRGNAM/arduino $PKG/usr/bin/$PRGNAM
 
 # Hack for missing libtinfo.so.5
 ln -s /lib$LIBDIRSUFFIX/libncurses.so.5 \
