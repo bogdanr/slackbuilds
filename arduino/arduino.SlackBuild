@@ -23,7 +23,7 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=arduino
-VERSION=${VERSION:-1.6.9}
+VERSION=${VERSION:-1.6.12}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -71,7 +71,7 @@ find -L . \
 
 # Manual install ensues
 mkdir -p $PKG/opt/$PRGNAM
-mv arduino dist examples hardware lib libraries reference tools $PKG/opt/$PRGNAM
+mv arduino examples hardware lib libraries reference tools $PKG/opt/$PRGNAM
 
 # Make it a bit more user friendly
 mkdir -p $PKG/usr/{bin,share/applications}
