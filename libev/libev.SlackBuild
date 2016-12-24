@@ -5,7 +5,7 @@
 # Updated by Bogdan Radulescu <bogdan@nimblex.net>
 
 PRGNAM=libev
-VERSION=${VERSION:-4.15}
+VERSION=${VERSION:-4.23}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -61,8 +61,7 @@ CXXFLAGS="$SLKCFLAGS" \
 ./configure \
   --prefix=/usr \
   --libdir=/usr/lib${LIBDIRSUFFIX} \
-  --mandir=/usr/man \
-  --build=$ARCH-slackware-linux
+  --mandir=/usr/man 
 
 make
 make install DESTDIR=$PKG
