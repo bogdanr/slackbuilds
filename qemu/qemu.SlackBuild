@@ -33,7 +33,7 @@
 # 1.3   03-NOV-2013     updated to 1.6.1
 
 PRGNAM=qemu
-VERSION=${VERSION:-2.6.0}
+VERSION=${VERSION:-2.8.0}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
