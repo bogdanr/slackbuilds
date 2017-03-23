@@ -23,7 +23,7 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=arduino
-VERSION=${VERSION:-1.6.12}
+VERSION=${VERSION:-1.8.2}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -75,13 +75,51 @@ mv arduino examples hardware lib libraries reference tools $PKG/opt/$PRGNAM
 
 # Make it a bit more user friendly
 mkdir -p $PKG/usr/{bin,share/applications}
-#sed "s/FULL_PATH/\/opt\/$PRGNAM/" arduino.desktop \
-#  > $PKG/usr/share/applications/$PRGNAM.desktop
-#ln -s /opt/$PRGNAM/arduino $PKG/usr/bin/$PRGNAM
+cp $CWD/arduino.desktop $PKG/usr/share/applications/$PRGNAM.desktop
+ln -s /opt/$PRGNAM/arduino $PKG/usr/bin/$PRGNAM
 
-# Hack for missing libtinfo.so.5
-ln -s /lib$LIBDIRSUFFIX/libncurses.so.5 \
-  $PKG/opt/$PRGNAM/hardware/tools/avr/lib/libtinfo.so.5
+# Add arduino-builder in the mix
+ArduinoBuilderVersion="1.3.25"
+wget -nc https://github.com/arduino/arduino-builder/releases/download/$ArduinoBuilderVersion/arduino-builder-linux$SRCSUFFIX-$ArduinoBuilderVersion.tar.bz2 -P $TMP
+tar xf $TMP/arduino-builder-linux$SRCSUFFIX-$ArduinoBuilderVersion.tar.bz2 -C $PKG/opt/$PRGNAM/
+
+# Add the ESP8266 support
+git clone https://github.com/esp8266/Arduino.git $PKG/opt/$PRGNAM/hardware/esp8266com/esp8266
+(cd $PKG/opt/$PRGNAM/hardware/esp8266com/esp8266/tools && python get.py)
+sed -i 's/{runtime.tools.ctags.path}/\/opt\/arduino\/tools\/ctags\/5.8-arduino11/' $PKG/opt/$PRGNAM/hardware/platform.txt
+
+# Handle all the extra libraries
+NeoPixelVersion="1.0.6"
+wget -nc https://github.com/adafruit/Adafruit_NeoPixel/archive/v$NeoPixelVersion.tar.gz -P $TMP
+tar xf $TMP/v$NeoPixelVersion.tar.gz -C $TMP
+mv $TMP/Adafruit_NeoPixel-$NeoPixelVersion $PKG/opt/$PRGNAM/libraries/Adafruit_NeoPixel
+rm -r $PKG/opt/$PRGNAM/libraries/Adafruit_NeoPixel/.github
+
+GFXVersion="1.1.8"
+wget -nc https://github.com/adafruit/Adafruit-GFX-Library/archive/$GFXVersion.tar.gz -P $TMP
+tar xf $TMP/$GFXVersion.tar.gz -C $TMP
+mv $TMP/Adafruit-GFX-Library-$GFXVersion $PKG/opt/$PRGNAM/libraries/Adafruit-GFX-Library
+
+ArduinoJsonVersion="5.8.3"
+wget -nc https://github.com/bblanchon/ArduinoJson/archive/v$ArduinoJsonVersion.tar.gz -P $TMP
+tar xf $TMP/v$ArduinoJsonVersion.tar.gz -C $TMP
+mv $TMP/ArduinoJson-$ArduinoJsonVersion $PKG/opt/$PRGNAM/libraries/ArduinoJson
+rm -r $PKG/opt/$PRGNAM/libraries/ArduinoJson/.github
+
+Blynk="0.4.6"
+wget -nc https://github.com/blynkkk/blynk-library/archive/v$Blynk.tar.gz -P $TMP
+tar xf $TMP/v$Blynk.tar.gz -C $TMP
+mv $TMP/blynk-library-$Blynk $PKG/opt/$PRGNAM/libraries/blynk-library
+
+WiFiManager="0.12"
+wget -nc https://github.com/tzapu/WiFiManager/archive/$WiFiManager.tar.gz -P $TMP
+tar xf $TMP/$WiFiManager.tar.gz -C $TMP
+mv $TMP/WiFiManager-$WiFiManager $PKG/opt/$PRGNAM/libraries/WiFiManager
+
+
+# Hack for missing libtinfo.so.5 and kreadconfig5
+ln -s /lib$LIBDIRSUFFIX/libncurses.so.5 $PKG/opt/$PRGNAM/hardware/tools/avr/lib/libtinfo.so.5
+ln -s /usr/bin/kreadconfig $PKG/usr/bin/kreadconfig5
 
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
 cp -a revisions.txt $PKG/usr/doc/$PRGNAM-$VERSION
