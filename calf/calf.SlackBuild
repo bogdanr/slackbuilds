@@ -4,8 +4,28 @@
 
 # Written by B. Watson (yalhcru@gmail.com)
 
+# 20170301 bkw: use long-format github URL, no more $VERSION.tar.gz
+
+# 20151106 bkw:
+# Switch to -master and upgrade to v0.0.60. No more LADSPA or DSSI
+# support (upstream dropped it). But if you need LADSPA, there's a
+# separate calf-ladspa build now. If there's a popular demand for
+# DSSI, I'll add it to calf-ladspa, not here.
+# fluidsynth is now required, because the build fails without it, even
+# though it's listed as experimental and there's a --disable-experimental
+# option. Since it's required anyway, might as well --enable-experimental.
+
+# 20141030 bkw:
+# Finally getting around to submitting this, there have been no code
+# changes upstream since 20140308.
+
+# 20140308 bkw:
+# - Switched to falkTX's KXStudio fork of CALF. falkTX doesn't do release
+#   tarballs, so this is a git checkout from 20140308.
+# - Added capability stuff.
+
 PRGNAM=calf
-VERSION=${VERSION:-0.0.19}
+VERSION=${VERSION:-0.0.60}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -22,8 +42,8 @@ TMP=${TMP:-/tmp/SBo}
 PKG=$TMP/package-$PRGNAM
 OUTPUT=${OUTPUT:-/tmp}
 
-if [ "$ARCH" = "i486" ]; then
-  SLKCFLAGS="-O2 -march=i486 -mtune=i686"
+if [ "$ARCH" = "i586" ]; then
+  SLKCFLAGS="-O2 -march=i586 -mtune=i686"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "i686" ]; then
   SLKCFLAGS="-O2 -march=i686 -mtune=i686"
@@ -36,32 +56,6 @@ else
   LIBDIRSUFFIX=""
 fi
 
-if [ "${EXPERIMENTAL:-no}" = "yes" ]; then
-  EXPOPT=enable
-else
-  EXPOPT=disable
-fi
-
-if [ "${LADSPA:-yes}" = "no" ]; then
-  LADSPA_OPT="--without-ladspa"
-else
-  LADSPA_OPT="--with-ladspa-dir=/usr/lib${LIBDIRSUFFIX}/ladspa"
-fi
-
-if [ "${DSSI:-yes}" = "no" ]; then
-  DSSI_OPT="--without-dssi"
-else
-  DSSI_OPT="--with-dssi-dir=/usr/lib${LIBDIRSUFFIX}/dssi"
-fi
-
-if [ "${LV2:-yes}" = "no" ]; then
-  LV2_OPT="--without-lv2"
-else
-  LV2_OPT="--with-lv2-dir=/usr/lib${LIBDIRSUFFIX}/lv2"
-fi
-
-echo "LADSPA_OPT: $LADSPA_OPT, DSSI_OPT: $DSSI_OPT, LV2_OPT: $LV2_OPT"
-
 set -e
 
 rm -rf $PKG
@@ -72,10 +66,12 @@ tar xvf $CWD/$PRGNAM-$VERSION.tar.gz
 cd $PRGNAM-$VERSION
 chown -R root:root .
 find -L . \
- \( -perm 777 -o -perm 775 -o -perm 750 -o -perm 711 -o -perm 555 -o -perm 511 \) \
- -exec chmod 755 {} \; -o \
- \( -perm 666 -o -perm 664 -o -perm 600 -o -perm 444 -o -perm 440 -o -perm 400 \) \
- -exec chmod 644 {} \;
+ \( -perm 777 -o -perm 775 -o -perm 750 -o -perm 711 -o -perm 555 \
+  -o -perm 511 \) -exec chmod 755 {} \; -o \
+ \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
+  -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
+
+autoreconf -if
 
 # Note: The build ignores the provided -O2 in the flags (but the
 # -march/-mtune -fPIC stuff is used). If you really want to force
@@ -83,35 +79,49 @@ find -L . \
 # in the environment.
 if [ "${FORCE_SLACK_CFLAGS:-no}" = "yes" ]; then
   sed -i -e 's/ -O3[^"]*//' configure
+  SSE=no
 fi
+
+# Build with SSE support?
+case "${SSE:-auto}" in
+  "yes") SSEOPT="--enable-sse"  ;;
+  "no")  SSEOPT="--disable-sse" ;;
+  *)     grep sse /proc/cpuinfo >/dev/null \
+              && SSEOPT="--enable-sse" \
+              || SSEOPT="--disable-sse" ;;
+esac
+
+# For the slack-desc:
+WITHSSE="without"
+[ "$SSEOPT" = "--enable-sse" ] && WITHSSE="with"
 
 CFLAGS="$SLKCFLAGS" \
 CXXFLAGS="$SLKCFLAGS" \
 ./configure \
-  --${EXPOPT}-experimental \
+  --enable-experimental \
   --prefix=/usr \
   --libdir=/usr/lib${LIBDIRSUFFIX} \
   --sysconfdir=/etc \
   --localstatedir=/var \
   --mandir=/usr/man \
   --docdir=/usr/doc/$PRGNAM-$VERSION \
-  $LADSPA_OPT \
-  $DSSI_OPT \
-  $LV2_OPT 
+  --htmldir=/usr/doc/$PRGNAM-$VERSION \
+  --enable-shared \
+  --disable-static \
+  --with-lv2-dir=/usr/lib${LIBDIRSUFFIX}/lv2
 
 make
-make install DESTDIR=$PKG
+make install DESTDIR=$PKG docdir=/usr/doc/$PRGNAM-$VERSION
 
 # install-strip is supported, but doesn't work:
-find $PKG | xargs file | grep -e "executable" -e "shared object" | grep ELF \
+find $PKG -print0 | xargs -0 file | grep -e "executable" -e "shared object" | grep ELF \
   | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
 
 find $PKG/usr/man -type f -exec gzip -9 {} \;
+for i in $( find $PKG/usr/man -type l ) ; do ln -s $( readlink $i ).gz $i.gz ; rm $i ; done
 
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a \
-  AUTHORS COPYING* ChangeLog README TODO \
-  $PKG/usr/doc/$PRGNAM-$VERSION
+cp -a AUTHORS COPYING* ChangeLog README TODO $PKG/usr/doc/$PRGNAM-$VERSION
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 
 # This shouldn't be in the package:
@@ -121,8 +131,16 @@ rm -f $PKG/usr/share/icons/hicolor/icon-theme.cache
 cat $CWD/$PRGNAM.desktop > $PKG/usr/share/applications/$PRGNAM.desktop
 
 mkdir -p $PKG/install
-cat $CWD/slack-desc > $PKG/install/slack-desc
+sed "s,@WITHSSE@,$WITHSSE," $CWD/slack-desc > $PKG/install/slack-desc
 cat $CWD/doinst.sh > $PKG/install/doinst.sh
+
+# Only add capability stuff if not disabled:
+if [ "${SETCAP:-yes}" = "yes" ]; then
+  cat $CWD/setcap.sh >> $PKG/install/doinst.sh
+  # Only allow execution by audio group
+  chown root:audio $PKG/usr/bin/$PRGNAM*
+  chmod 0750 $PKG/usr/bin/$PRGNAM*
+fi
 
 cd $PKG
 /sbin/makepkg -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD.${PKGTYPE:-txz}
