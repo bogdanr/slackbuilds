@@ -16,12 +16,6 @@ FFT plot and waterfall.
 Record and playback audio to / from WAV file.
 Spectrum analyzer mode where all signal processing is disabled.
 
-NOTE: 
-To successfully run gqrx you must build gr-osmosdr with 
-support to your hardware (eg rtl-sdr,uhd) and have installed 
-on your system the latest version of libusb (1.0.19)
-(you can grab it from slackware current)
-
 NOTE:
 If you use a DVB-T dongle keep in mind newer kernels already 
 contains a DVB driver, however, we do not want to use this. 

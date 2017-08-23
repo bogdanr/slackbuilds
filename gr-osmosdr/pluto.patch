@@ -1,0 +1,596 @@
+diff -ruN gr-osmosdr/CMakeLists.txt gr-osmosdr-gqrx/CMakeLists.txt
+--- gr-osmosdr/CMakeLists.txt	2017-08-23 15:24:36.568376734 +0300
++++ gr-osmosdr-gqrx/CMakeLists.txt	2017-08-23 16:10:51.555254247 +0300
+@@ -159,6 +159,7 @@
+ find_package(GnuradioIQBalance)
+ find_package(UHD)
+ find_package(GnuradioUHD)
++find_package(GnuradioIIO)
+ find_package(GnuradioFCD)
+ find_package(GnuradioFCDPP)
+ find_package(LibOsmoSDR)
+diff -ruN gr-osmosdr/cmake/Modules/FindGnuradioIIO.cmake gr-osmosdr-gqrx/cmake/Modules/FindGnuradioIIO.cmake
+--- gr-osmosdr/cmake/Modules/FindGnuradioIIO.cmake	1970-01-01 02:00:00.000000000 +0200
++++ gr-osmosdr-gqrx/cmake/Modules/FindGnuradioIIO.cmake	2017-08-23 16:10:51.555254247 +0300
+@@ -0,0 +1,34 @@
++INCLUDE(FindPkgConfig)
++PKG_CHECK_MODULES(PC_GNURADIO_IIO gnuradio-iio)
++
++FIND_PATH(
++    GNURADIO_IIO_INCLUDE_DIRS
++    NAMES gnuradio/iio/api.h
++    HINTS $ENV{GNURADIO_IIO_DIR}/include
++        ${PC_GNURADIO_IIO_INCLUDEDIR}
++    PATHS /usr/local/include
++          /usr/include
++)
++
++FIND_LIBRARY(
++    GNURADIO_IIO_LIBRARIES
++    NAMES gnuradio-iio
++    HINTS $ENV{GNURADIO_IIO_DIR}/lib
++        ${PC_GNURADIO_IIO_LIBDIR}
++    PATHS /usr/local/lib
++          /usr/local/lib64
++          /usr/lib
++          /usr/lib64
++)
++
++if(GNURADIO_IIO_INCLUDE_DIRS AND GNURADIO_IIO_LIBRARIES)
++  set(GNURADIO_IIO_FOUND TRUE CACHE INTERNAL "gnuradio-iio found")
++  message(STATUS "Found gnuradio-iio: ${GNURADIO_IIO_INCLUDE_DIRS}, ${GNURADIO_IIO_LIBRARIES}")
++else(GNURADIO_IIO_INCLUDE_DIRS AND GNURADIO_IIO_LIBRARIES)
++  set(GNURADIO_IIO_FOUND FALSE CACHE INTERNAL "gnuradio-iio found")
++  message(STATUS "gnuradio-iio not found.")
++endif(GNURADIO_IIO_INCLUDE_DIRS AND GNURADIO_IIO_LIBRARIES)
++
++INCLUDE(FindPackageHandleStandardArgs)
++FIND_PACKAGE_HANDLE_STANDARD_ARGS(GNURADIO_IIO DEFAULT_MSG GNURADIO_IIO_LIBRARIES GNURADIO_IIO_INCLUDE_DIRS)
++MARK_AS_ADVANCED(GNURADIO_IIO_LIBRARIES GNURADIO_IIO_INCLUDE_DIRS)
+diff -ruN gr-osmosdr/cmake/Modules/FindIIO.cmake gr-osmosdr-gqrx/cmake/Modules/FindIIO.cmake
+--- gr-osmosdr/cmake/Modules/FindIIO.cmake	1970-01-01 02:00:00.000000000 +0200
++++ gr-osmosdr-gqrx/cmake/Modules/FindIIO.cmake	2017-08-23 16:10:51.555254247 +0300
+@@ -0,0 +1,28 @@
++########################################################################
++# Find the IIO userspace library
++########################################################################
++
++INCLUDE(FindPkgConfig)
++PKG_CHECK_MODULES(PC_IIO iio)
++
++FIND_PATH(
++    IIO_INCLUDE_DIRS
++    NAMES iio.h
++    HINTS $ENV{IIO_DIR}/include
++        ${PC_IIO_INCLUDEDIR}
++    PATHS /usr/local/include
++          /usr/include
++)
++
++FIND_LIBRARY(
++    IIO_LIBRARIES
++    NAMES iio
++    HINTS $ENV{IIO_DIR}/lib
++        ${PC_IIO_LIBDIR}
++    PATHS /usr/local/lib
++          /usr/lib
++)
++
++INCLUDE(FindPackageHandleStandardArgs)
++FIND_PACKAGE_HANDLE_STANDARD_ARGS(IIO DEFAULT_MSG IIO_LIBRARIES IIO_INCLUDE_DIRS)
++MARK_AS_ADVANCED(IIO_LIBRARIES IIO_INCLUDE_DIRS)
+diff -ruN gr-osmosdr/lib/CMakeLists.txt gr-osmosdr-gqrx/lib/CMakeLists.txt
+--- gr-osmosdr/lib/CMakeLists.txt	2017-08-23 15:24:36.574376801 +0300
++++ gr-osmosdr-gqrx/lib/CMakeLists.txt	2017-08-23 16:10:51.555254247 +0300
+@@ -175,6 +175,14 @@
+ endif(ENABLE_UHD)
+ 
+ ########################################################################
++# Setup IIO component
++########################################################################
++GR_REGISTER_COMPONENT("IIO Devices" ENABLE_IIO GNURADIO_IIO_FOUND)
++if(ENABLE_IIO)
++GR_INCLUDE_SUBDIRECTORY(plutosdr)
++endif(ENABLE_IIO)
++
++########################################################################
+ # Setup MiriSDR component
+ ########################################################################
+ GR_REGISTER_COMPONENT("Osmocom MiriSDR" ENABLE_MIRI LIBMIRISDR_FOUND)
+diff -ruN gr-osmosdr/lib/config.h.in gr-osmosdr-gqrx/lib/config.h.in
+--- gr-osmosdr/lib/config.h.in	2017-08-23 15:24:36.575376812 +0300
++++ gr-osmosdr-gqrx/lib/config.h.in	2017-08-23 16:10:51.555254247 +0300
+@@ -10,6 +10,7 @@
+ #cmakedefine ENABLE_RTL
+ #cmakedefine ENABLE_RTL_TCP
+ #cmakedefine ENABLE_UHD
++#cmakedefine ENABLE_IIO
+ #cmakedefine ENABLE_MIRI
+ #cmakedefine ENABLE_SDRPLAY
+ #cmakedefine ENABLE_HACKRF
+diff -ruN gr-osmosdr/lib/device.cc gr-osmosdr-gqrx/lib/device.cc
+--- gr-osmosdr/lib/device.cc	2017-08-23 15:24:36.575376812 +0300
++++ gr-osmosdr-gqrx/lib/device.cc	2017-08-23 16:10:51.555254247 +0300
+@@ -54,6 +54,10 @@
+ #include <uhd_source_c.h>
+ #endif
+ 
++#ifdef ENABLE_IIO
++#include <plutosdr_source_c.h>
++#endif
++
+ #ifdef ENABLE_MIRI
+ #include <miri_source_c.h>
+ #endif
+@@ -162,6 +166,10 @@
+   BOOST_FOREACH( std::string dev, uhd_source_c::get_devices() )
+     devices.push_back( device_t(dev) );
+ #endif
++#ifdef ENABLE_IIO
++  BOOST_FOREACH( std::string dev, plutosdr_source_c::get_devices() )
++    devices.push_back( device_t(dev) );
++#endif
+ #ifdef ENABLE_MIRI
+   BOOST_FOREACH( std::string dev, miri_source_c::get_devices() )
+     devices.push_back( device_t(dev) );
+diff -ruN gr-osmosdr/lib/plutosdr/CMakeLists.txt gr-osmosdr-gqrx/lib/plutosdr/CMakeLists.txt
+--- gr-osmosdr/lib/plutosdr/CMakeLists.txt	1970-01-01 02:00:00.000000000 +0200
++++ gr-osmosdr-gqrx/lib/plutosdr/CMakeLists.txt	2017-08-23 16:10:51.555254247 +0300
+@@ -0,0 +1,39 @@
++# Copyright 2012 Free Software Foundation, Inc.
++#
++# This file is part of GNU Radio
++#
++# GNU Radio is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3, or (at your option)
++# any later version.
++#
++# GNU Radio is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with GNU Radio; see the file COPYING.  If not, write to
++# the Free Software Foundation, Inc., 51 Franklin Street,
++# Boston, MA 02110-1301, USA.
++
++########################################################################
++# This file included, use CMake directory variables
++########################################################################
++
++include_directories(
++    ${CMAKE_CURRENT_SOURCE_DIR}
++    ${GNURADIO_IIO_INCLUDE_DIRS}
++    ${IIO_INCLUDE_DIRS}
++)
++
++set(iio_srcs
++#    ${CMAKE_CURRENT_SOURCE_DIR}/iio_sink_c.cc
++    ${CMAKE_CURRENT_SOURCE_DIR}/plutosdr_source_c.cc
++)
++
++########################################################################
++# Append gnuradio-osmosdr library sources
++########################################################################
++list(APPEND gr_osmosdr_srcs ${iio_srcs})
++list(APPEND gr_osmosdr_libs ${GNURADIO_IIO_LIBRARIES} ${IIO_LIBRARIES})
+diff -ruN gr-osmosdr/lib/plutosdr/plutosdr_source_c.cc gr-osmosdr-gqrx/lib/plutosdr/plutosdr_source_c.cc
+--- gr-osmosdr/lib/plutosdr/plutosdr_source_c.cc	1970-01-01 02:00:00.000000000 +0200
++++ gr-osmosdr-gqrx/lib/plutosdr/plutosdr_source_c.cc	2017-08-23 16:10:51.556254258 +0300
+@@ -0,0 +1,256 @@
++/* -*- c++ -*- */
++/*
++ * Copyright 2012 Dimitri Stolnikov <horiz0n@gmx.net>
++ *
++ * GNU Radio is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 3, or (at your option)
++ * any later version.
++ *
++ * GNU Radio is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with GNU Radio; see the file COPYING.  If not, write to
++ * the Free Software Foundation, Inc., 51 Franklin Street,
++ * Boston, MA 02110-1301, USA.
++ */
++
++#include <boost/foreach.hpp>
++#include <boost/assign.hpp>
++#include <boost/algorithm/string.hpp>
++
++#include "arg_helpers.h"
++#include "osmosdr/source.h"
++#include "plutosdr_source_c.h"
++
++using namespace boost::assign;
++
++plutosdr_source_c_sptr make_plutosdr_source_c(const std::string &args)
++{
++  return gnuradio::get_initial_sptr(new plutosdr_source_c(args));
++}
++
++plutosdr_source_c::plutosdr_source_c(const std::string &args) :
++    gr::hier_block2("plutosdr_source_c",
++                   gr::io_signature::make(0, 0, 0),
++                   gr::io_signature::make(1, 1, sizeof(gr_complex)))
++{
++  //uri = "";
++  // FIXME: should be in args
++  uri = "ip:192.168.2.1";
++  //uri = "usb:6.29.5";
++  frequency = 434000000;
++  samplerate = 2500000;
++  decimation = 0;
++  bandwidth = 2000000;
++  buffer_size = 0x4000;
++  quadrature = true;
++  rfdc = true;
++  bbdc = true;
++  gain_auto = false;
++  gain_value = 50;
++  filter = "";
++  filter_auto = true;
++
++  _src = gr::iio::pluto_source::make(uri.c_str(), frequency, samplerate,
++                                     decimation, bandwidth, buffer_size,
++                                     quadrature, rfdc, bbdc,
++                                     "manual", gain_value,
++                                     filter.c_str(), filter_auto);
++
++  connect( _src, 0, self(), 0 );
++}
++
++plutosdr_source_c::~plutosdr_source_c()
++{
++}
++
++std::vector< std::string > plutosdr_source_c::get_devices()
++{
++  std::vector< std::string > devices;
++
++  std::string args = "plutosdr,label='PlutoSDR'";
++
++  devices.push_back( args );
++
++  return devices;
++}
++
++std::string plutosdr_source_c::name()
++{
++  return "PlutoSDR";
++}
++
++size_t plutosdr_source_c::get_num_channels()
++{
++  return output_signature()->max_streams();
++}
++
++osmosdr::meta_range_t plutosdr_source_c::get_sample_rates( void )
++{
++  osmosdr::meta_range_t rates;
++
++  rates += osmosdr::range_t( 2500000 );
++  rates += osmosdr::range_t( 5000000 );
++  rates += osmosdr::range_t( 10000000 );
++  rates += osmosdr::range_t( 20000000 );
++
++  return rates;
++}
++
++double plutosdr_source_c::set_sample_rate( double rate )
++{
++  samplerate = (unsigned long) rate;
++  set_params();
++
++  return samplerate;
++}
++
++double plutosdr_source_c::get_sample_rate( void )
++{
++  return samplerate;
++}
++
++osmosdr::freq_range_t plutosdr_source_c::get_freq_range( size_t chan )
++{
++  osmosdr::freq_range_t range;
++
++  range += osmosdr::range_t( 70.0e6, 6000.0e6, 1.0 );
++
++  return range;
++}
++
++double plutosdr_source_c::set_center_freq( double freq, size_t chan )
++{
++  frequency = (unsigned long long) freq;
++  set_params();
++
++  return freq;
++}
++
++double plutosdr_source_c::get_center_freq( size_t chan )
++{
++  return frequency;
++}
++
++double plutosdr_source_c::set_freq_corr( double ppm, size_t chan)
++{
++  _freq_corr = ppm;
++  return ppm;
++}
++
++double plutosdr_source_c::get_freq_corr( size_t chan)
++{
++  return _freq_corr;
++}
++
++std::vector<std::string> plutosdr_source_c::get_gain_names( size_t chan )
++{
++  std::vector< std::string > gains;
++
++  gains.push_back( "RF" );
++
++  return gains;
++}
++
++osmosdr::gain_range_t plutosdr_source_c::get_gain_range( size_t chan)
++{
++  osmosdr::gain_range_t range;
++  range += osmosdr::range_t( -10, 77, 1 );   // https://wiki.analog.com/resources/tools-software/linux-drivers/iio-transceiver/ad9361#rx_gain_control
++
++  return range;
++}
++
++osmosdr::gain_range_t plutosdr_source_c::get_gain_range( const std::string & name,
++                                                         size_t chan)
++{
++  osmosdr::gain_range_t range;
++
++  range += osmosdr::range_t( -10, 77, 1 );
++
++  return range;
++}
++
++bool plutosdr_source_c::set_gain_mode( bool automatic, size_t chan )
++{
++  gain_auto = automatic;
++  set_params();
++
++  return automatic;
++}
++
++bool plutosdr_source_c::get_gain_mode( size_t chan )
++{
++  return gain_auto;
++}
++
++double plutosdr_source_c::set_gain( double gain, size_t chan )
++{
++  gain_value = gain;
++  set_params();
++
++  return gain;
++}
++
++double plutosdr_source_c::set_gain( double gain, const std::string & name, size_t chan )
++{
++  gain_value = gain;
++  set_params();
++
++  return gain;
++}
++
++double plutosdr_source_c::get_gain( size_t chan )
++{
++  return gain_value;
++}
++
++double plutosdr_source_c::get_gain( const std::string & name, size_t chan )
++{
++  return gain_value;
++}
++
++std::vector< std::string > plutosdr_source_c::get_antennas( size_t chan )
++{
++  std::vector< std::string > antennas;
++
++  antennas += get_antenna( chan );
++
++  return antennas;
++}
++
++std::string plutosdr_source_c::set_antenna( const std::string & antenna, size_t chan )
++{
++  return get_antenna( chan );
++}
++
++std::string plutosdr_source_c::get_antenna( size_t chan )
++{
++  return "A_BALANCED";
++}
++
++double plutosdr_source_c::set_bandwidth( double bw, size_t chan )
++{
++  if (bw == 0.0)
++    bw = 0.8 * samplerate;  // auto bandwidth
++
++  bandwidth = (unsigned long)bw;
++  set_params();
++  return bandwidth;
++}
++
++double plutosdr_source_c::get_bandwidth( size_t chan )
++{
++  return bandwidth;
++}
++
++void plutosdr_source_c::set_params( void )
++{
++  // FIXME: gain_mode string can be manual / slow_attack / fast_attack / hybrid
++  _src->set_params( frequency, samplerate, bandwidth, quadrature, rfdc, bbdc,
++                    gain_auto ? "fast_attack" : "manual", gain_value,
++                    filter.c_str(), filter_auto );
++}
+diff -ruN gr-osmosdr/lib/plutosdr/plutosdr_source_c.h gr-osmosdr-gqrx/lib/plutosdr/plutosdr_source_c.h
+--- gr-osmosdr/lib/plutosdr/plutosdr_source_c.h	1970-01-01 02:00:00.000000000 +0200
++++ gr-osmosdr-gqrx/lib/plutosdr/plutosdr_source_c.h	2017-08-23 16:10:51.556254258 +0300
+@@ -0,0 +1,105 @@
++/* -*- c++ -*- */
++/*
++ * Copyright 2012 Dimitri Stolnikov <horiz0n@gmx.net>
++ *
++ * GNU Radio is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 3, or (at your option)
++ * any later version.
++ *
++ * GNU Radio is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with GNU Radio; see the file COPYING.  If not, write to
++ * the Free Software Foundation, Inc., 51 Franklin Street,
++ * Boston, MA 02110-1301, USA.
++ */
++#ifndef PLUTOSDR_SOURCE_C_H
++#define PLUTOSDR_SOURCE_C_H
++
++#include <gnuradio/blocks/float_to_complex.h>
++#include <gnuradio/blocks/short_to_float.h>
++#include <gnuradio/hier_block2.h>
++#include <gnuradio/iio/pluto_source.h>
++
++#include "source_iface.h"
++
++class plutosdr_source_c;
++
++typedef boost::shared_ptr< plutosdr_source_c > plutosdr_source_c_sptr;
++
++plutosdr_source_c_sptr make_plutosdr_source_c(const std::string &args = "");
++
++class plutosdr_source_c :
++    public gr::hier_block2,
++    public source_iface
++{
++private:
++  friend plutosdr_source_c_sptr make_plutosdr_source_c(const std::string &args);
++
++  plutosdr_source_c(const std::string &args);
++
++public:
++  ~plutosdr_source_c();
++
++  static std::vector< std::string > get_devices();
++
++  std::string name();
++
++  size_t get_num_channels( void );
++
++  osmosdr::meta_range_t get_sample_rates( void );
++  double set_sample_rate( double rate );
++  double get_sample_rate( void );
++
++  osmosdr::freq_range_t get_freq_range( size_t chan = 0 );
++  double set_center_freq( double freq, size_t chan = 0 );
++  double get_center_freq( size_t chan = 0 );
++
++  double set_freq_corr( double ppm, size_t chan = 0 );
++  double get_freq_corr( size_t chan = 0 );
++
++  std::vector<std::string> get_gain_names( size_t chan = 0 );
++  osmosdr::gain_range_t get_gain_range( size_t chan = 0 );
++  osmosdr::gain_range_t get_gain_range( const std::string & name, size_t chan = 0 );
++  bool set_gain_mode( bool automatic, size_t chan = 0 );
++  bool get_gain_mode( size_t chan = 0 );
++  double set_gain( double gain, size_t chan = 0 );
++  double set_gain( double gain, const std::string & name, size_t chan = 0 );
++  double get_gain( size_t chan = 0 );
++  double get_gain( const std::string & name, size_t chan = 0 );
++
++  std::vector< std::string > get_antennas( size_t chan = 0 );
++  std::string set_antenna( const std::string & antenna, size_t chan = 0 );
++  std::string get_antenna( size_t chan = 0 );
++
++  double set_bandwidth( double bw, size_t chan = 0 );
++  double get_bandwidth( size_t chan = 0 );
++
++private:
++
++  void set_params(void);
++
++  gr::iio::pluto_source::sptr       _src;
++
++  std::string   uri;
++  unsigned long long frequency;
++  unsigned long samplerate;
++  unsigned long decimation;
++  unsigned long bandwidth;
++  unsigned long buffer_size;
++  bool quadrature;
++  bool rfdc;
++  bool bbdc;
++  bool          gain_auto;
++  double        gain_value;
++  std::string   filter;
++  bool          filter_auto;
++
++  double _freq_corr;
++};
++
++#endif // PLUTOSDR_SOURCE_C_H
+diff -ruN gr-osmosdr/lib/source_impl.cc gr-osmosdr-gqrx/lib/source_impl.cc
+--- gr-osmosdr/lib/source_impl.cc	2017-08-23 15:24:36.579376857 +0300
++++ gr-osmosdr-gqrx/lib/source_impl.cc	2017-08-23 16:10:51.556254258 +0300
+@@ -56,6 +56,10 @@
+ #include <uhd_source_c.h>
+ #endif
+ 
++#ifdef ENABLE_IIO
++#include <plutosdr_source_c.h>
++#endif
++
+ #ifdef ENABLE_MIRI
+ #include <miri_source_c.h>
+ #endif
+@@ -144,6 +148,9 @@
+ #ifdef ENABLE_UHD
+   dev_types.push_back("uhd");
+ #endif
++#ifdef ENABLE_IIO
++  dev_types.push_back("plutosdr");
++#endif
+ #ifdef ENABLE_MIRI
+   dev_types.push_back("miri");
+ #endif
+@@ -216,6 +223,10 @@
+     BOOST_FOREACH( std::string dev, uhd_source_c::get_devices() )
+       dev_list.push_back( dev );
+ #endif
++#ifdef ENABLE_IIO
++    BOOST_FOREACH( std::string dev, plutosdr_source_c::get_devices() )
++      dev_list.push_back( dev );
++#endif
+ #ifdef ENABLE_MIRI
+     BOOST_FOREACH( std::string dev, miri_source_c::get_devices() )
+       dev_list.push_back( dev );
+@@ -315,6 +326,13 @@
+       block = src; iface = src.get();
+     }
+ #endif
++
++#ifdef ENABLE_IIO
++    if ( dict.count("plutosdr") ) {
++      plutosdr_source_c_sptr src = make_plutosdr_source_c( arg );
++      block = src; iface = src.get();
++    }
++#endif
+ 
+ #ifdef ENABLE_MIRI
+     if ( dict.count("miri") ) {

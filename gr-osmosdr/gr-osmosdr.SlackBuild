@@ -2,7 +2,7 @@
 
 # Slackware build script for gr-osmosdr
 
-# Copyright 2015 Panagiotis Nikolaou, Karlovasi Samos, Gr
+# Copyright 2015-2017 Panagiotis Nikolaou, Culver City, CA
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -23,7 +23,7 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=gr-osmosdr
-VERSION=${VERSION:-0.1.4}
+VERSION=${VERSION:-20170611}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -40,8 +40,8 @@ TMP=${TMP:-/tmp/SBo}
 PKG=$TMP/package-$PRGNAM
 OUTPUT=${OUTPUT:-/tmp}
 
-if [ "$ARCH" = "i486" ]; then
-  SLKCFLAGS="-O2 -march=i486 -mtune=i686"
+if [ "$ARCH" = "i586" ]; then
+  SLKCFLAGS="-O2 -march=i586 -mtune=i686"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "i686" ]; then
      SLKCFLAGS="-O2 -march=i686 -mtune=i686"
@@ -70,13 +70,17 @@ find -L . \
  \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
  -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
+# I've bouth an Adalm-Pluto so I must enjoy it :)
+patch -p1 < $CWD/pluto.patch
+
 mkdir -p build
 cd build
   cmake \
+        -DCMAKE_CXX_FLAGS=-std=c++11 \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DCMAKE_PREFIX_PATH=/usr/lib${LIBDIRSUFFIX}/cmake/gnuradio/gnuradio/ \
-	-DLIB_SUFFIX=$LIBDIRSUFFIX \
-	-DCMAKE_BUILD_TYPE=Release ..
+        -DLIB_SUFFIX=$LIBDIRSUFFIX \
+        -DCMAKE_BUILD_TYPE=Release ..
 make
 make install DESTDIR=$PKG
 cd ..
