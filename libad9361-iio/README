@@ -1,0 +1,3 @@
+This is a simple library used for userspace, which manages
+multi-chip sync, on platforms (FMCOMMS5) where multiple
+AD9361 devices are used.
