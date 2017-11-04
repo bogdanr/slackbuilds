@@ -1,8 +1,9 @@
 #!/bin/sh
 
-# Slackware build script for <appname>
+# Slackware build script for libconfig
 
-# Copyright <year> <you> <where you live>
+# Copyright 2017 Manuel Argüelles <manuel.arguelles@gmail.com>
+# Copyright 2017 Jason Graham <jgraha8@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -23,7 +24,7 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=libconfig
-VERSION=${VERSION:-1.4.9}
+VERSION=${VERSION:-1.6}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -40,8 +41,8 @@ TMP=${TMP:-/tmp/SBo}
 PKG=$TMP/package-$PRGNAM
 OUTPUT=${OUTPUT:-/tmp}
 
-if [ "$ARCH" = "i486" ]; then
-  SLKCFLAGS="-O2 -march=i486 -mtune=i686"
+if [ "$ARCH" = "i586" ]; then
+  SLKCFLAGS="-O2 -march=i586 -mtune=i686"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "i686" ]; then
   SLKCFLAGS="-O2 -march=i686 -mtune=i686"
@@ -54,6 +55,8 @@ else
   LIBDIRSUFFIX=""
 fi
 
+EXAMPLES=${EXAMPLES:-no}
+
 set -e
 
 rm -rf $PKG
@@ -64,10 +67,12 @@ tar xvf $CWD/$PRGNAM-$VERSION.tar.gz
 cd $PRGNAM-$VERSION
 chown -R root:root .
 find -L . \
- \( -perm 777 -o -perm 775 -o -perm 750 -o -perm 711 -o -perm 555 -o -perm 511 \) \
- -exec chmod 755 {} \; -o \
- \( -perm 666 -o -perm 664 -o -perm 600 -o -perm 444 -o -perm 440 -o -perm 400 \) \
- -exec chmod 644 {} \;
+ \( -perm 777 -o -perm 775 -o -perm 750 -o -perm 711 -o -perm 555 \
+  -o -perm 511 \) -exec chmod 755 {} \; -o \
+ \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
+  -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
+
+zcat $CWD/remove_scanner.patch.gz | patch -p1
 
 CFLAGS="$SLKCFLAGS" \
 CXXFLAGS="$SLKCFLAGS" \
@@ -79,9 +84,9 @@ CXXFLAGS="$SLKCFLAGS" \
   --mandir=/usr/man \
   --infodir=/usr/info \
   --docdir=/usr/doc/$PRGNAM-$VERSION \
-  --build=$ARCH-slackware-linux
+  --disable-static
 
-make
+make -j1
 make install DESTDIR=$PKG
 
 find $PKG -print0 | xargs -0 file | grep -e "executable" -e "shared object" | grep ELF \
@@ -95,6 +100,12 @@ cp -a \
   INSTALL COPYING.LIB AUTHORS README ChangeLog \
   $PKG/usr/doc/$PRGNAM-$VERSION
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
+
+if [ "${EXAMPLES}" = "yes" ]; then
+    mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION/examples/{c,c++}
+    cp -a examples/c/*.{cfg,c} $PKG/usr/doc/$PRGNAM-$VERSION/examples/c/
+    cp -a examples/c++/*.{cfg,cpp} $PKG/usr/doc/$PRGNAM-$VERSION/examples/c++/
+fi
 
 mkdir -p $PKG/install
 cat $CWD/slack-desc > $PKG/install/slack-desc
