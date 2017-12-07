@@ -1,8 +1,8 @@
 #!/bin/sh
 
-# Slackware build script for jsoncpp
+# Slackware build script for sysdig
 
-# Copyright 2014-2017 Larry Hajali <larryhaja[at]gmail[dot]com>
+# Copyright 2015-2017 Larry Hajali <larryhaja[at]gmail[dot]com>
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -22,8 +22,8 @@
 #  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-PRGNAM=jsoncpp
-VERSION=${VERSION:-1.8.1}
+PRGNAM=sysdig
+VERSION=${VERSION:-0.19.1}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -54,6 +54,9 @@ else
   LIBDIRSUFFIX=""
 fi
 
+KERNEL=${KERNEL:-$(uname -r)}
+PKGVER=${VERSION}_$(echo $KERNEL | tr - _)
+
 set -e
 
 rm -rf $PKG
@@ -69,35 +72,48 @@ find -L . \
  \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
-mkdir -p build
+# Fix manpage location
+sed -i 's|share/||' userspace/sysdig/man/CMakeLists.txt
+
+# Determine if dkms is to be used. Default is no.
+if [ "${DKMS:-no}" == "yes" ]; then
+  USEDKMS="ON"
+else
+  USEDKMS="OFF"
+  sed -i '/sysdig-probe-loader/,$d' scripts/CMakeLists.txt
+fi
+
+mkdir build
 cd build
   cmake -G "Unix Makefiles" \
     -DCMAKE_INSTALL_PREFIX:PATH="/usr" \
+    -DSYSDIG_VERSION="$VERSION" \
+    -DDIR_ETC:PATH="/etc" \
+    -DUSE_BUNDLED_DEPS:BOOL=OFF \
+    -DUSE_BUNDLED_JSONCPP:BOOL=OFF \
+    -DENABLE_DKMS:BOOL="$USEDKMS" \
     -DCMAKE_C_FLAGS:STRING="$SLKCFLAGS" \
     -DCMAKE_CXX_FLAGS:STRING="$SLKCFLAGS" \
-    -DJSONCPP_WITH_CMAKE_PACKAGE:BOOL=ON \
-    -DBUILD_STATIC_LIBS:BOOL=OFF \
-    -DBUILD_SHARED_LIBS:BOOL=ON \
-    -DJSONCPP_WITH_TESTS:BOOL=OFF \
-    -DCMAKE_INSTALL_INCLUDEDIR="/usr/include/$PRGNAM" \
     -DCMAKE_BUILD_TYPE=Release ..
 
   make VERBOSE=1
   make install DESTDIR=$PKG
+  mkdir -p $PKG/lib/modules/$KERNEL/misc
+  install -m 0644 driver/$PRGNAM-probe.ko $PKG/lib/modules/$KERNEL/misc
 cd -
 
 find $PKG -print0 | xargs -0 file | grep -e "executable" -e "shared object" | grep ELF \
   | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
 
-# Cosmetic fix.
-sed -i '/^includedir/s|\$.*//|/|' $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig/$PRGNAM.pc
+find $PKG/usr/man -type f -exec gzip -9 {} \;
 
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a AUTHORS LICENSE NEWS.txt README.md $PKG/usr/doc/$PRGNAM-$VERSION
+cp -a *.md COPYING $PKG/usr/doc/$PRGNAM-$VERSION
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 
 mkdir -p $PKG/install
 cat $CWD/slack-desc > $PKG/install/slack-desc
+sed -e "s|@KERNEL@|$KERNEL|" $CWD/doinst.sh > $PKG/install/doinst.sh
 
 cd $PKG
-/sbin/makepkg -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD.${PKGTYPE:-txz}
+/sbin/makepkg -l y -c n $OUTPUT/$PRGNAM-$PKGVER-$ARCH-$BUILD.${PKGTYPE:-txz}

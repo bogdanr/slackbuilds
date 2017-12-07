@@ -1,8 +1,8 @@
 #!/bin/sh
 
-# Slackware build script for jsoncpp
+# Slackware build script for libb64
 
-# Copyright 2014-2017 Larry Hajali <larryhaja[at]gmail[dot]com>
+# Copyright 2015 Larry Hajali <larryhaja[at]gmail[dot]com>
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -22,8 +22,8 @@
 #  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-PRGNAM=jsoncpp
-VERSION=${VERSION:-1.8.1}
+PRGNAM=libb64
+VERSION=${VERSION:-1.2.1}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -40,8 +40,8 @@ TMP=${TMP:-/tmp/SBo}
 PKG=$TMP/package-$PRGNAM
 OUTPUT=${OUTPUT:-/tmp}
 
-if [ "$ARCH" = "i586" ]; then
-  SLKCFLAGS="-O2 -march=i586 -mtune=i686"
+if [ "$ARCH" = "i486" ]; then
+  SLKCFLAGS="-O2 -march=i486 -mtune=i686"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "i686" ]; then
   SLKCFLAGS="-O2 -march=i686 -mtune=i686"
@@ -60,7 +60,7 @@ rm -rf $PKG
 mkdir -p $TMP $PKG $OUTPUT
 cd $TMP
 rm -rf $PRGNAM-$VERSION
-tar xvf $CWD/$PRGNAM-$VERSION.tar.gz
+unzip $CWD/$PRGNAM-$VERSION.zip
 cd $PRGNAM-$VERSION
 chown -R root:root .
 find -L . \
@@ -69,31 +69,27 @@ find -L . \
  \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
-mkdir -p build
-cd build
-  cmake -G "Unix Makefiles" \
-    -DCMAKE_INSTALL_PREFIX:PATH="/usr" \
-    -DCMAKE_C_FLAGS:STRING="$SLKCFLAGS" \
-    -DCMAKE_CXX_FLAGS:STRING="$SLKCFLAGS" \
-    -DJSONCPP_WITH_CMAKE_PACKAGE:BOOL=ON \
-    -DBUILD_STATIC_LIBS:BOOL=OFF \
-    -DBUILD_SHARED_LIBS:BOOL=ON \
-    -DJSONCPP_WITH_TESTS:BOOL=OFF \
-    -DCMAKE_INSTALL_INCLUDEDIR="/usr/include/$PRGNAM" \
-    -DCMAKE_BUILD_TYPE=Release ..
+# Fix warnings as errors.
+sed -i 's|-Werror||' */Makefile
+# Build shared library.
+patch -p0 < $CWD/shared-library.patch
 
-  make VERBOSE=1
-  make install DESTDIR=$PKG
-cd -
+CFLAGS="$SLKCFLAGS" make
+
+# Manually install.
+mkdir -p $PKG/usr/lib${LIBDIRSUFFIX}
+#install -m 0644 src/libb64.a $PKG/usr/lib${LIBDIRSUFFIX}
+install -m 0755 src/libb64.so.0 $PKG/usr/lib${LIBDIRSUFFIX}
+ln -s /usr/lib${LIBDIRSUFFIX}/$PRGNAM.so.0 $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM.so
+mv include $PKG/usr
 
 find $PKG -print0 | xargs -0 file | grep -e "executable" -e "shared object" | grep ELF \
   | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
 
-# Cosmetic fix.
-sed -i '/^includedir/s|\$.*//|/|' $PKG/usr/lib${LIBDIRSUFFIX}/pkgconfig/$PRGNAM.pc
-
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a AUTHORS LICENSE NEWS.txt README.md $PKG/usr/doc/$PRGNAM-$VERSION
+cp -a \
+  AUTHORS BENCHMARKS CHANGELOG INSTALL LICENSE README \
+  $PKG/usr/doc/$PRGNAM-$VERSION
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 
 mkdir -p $PKG/install

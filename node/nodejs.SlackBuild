@@ -25,7 +25,7 @@
 
 PRGNAM=nodejs
 SRCNAM=node
-VERSION=${VERSION:-v6.0.0}
+VERSION=${VERSION:-v6.12.1}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -42,7 +42,7 @@ TMP=${TMP:-/tmp/SBo}
 PKG=$TMP/package-$PRGNAM
 OUTPUT=${OUTPUT:-/tmp}
 
-DOCS="AUTHORS CHANGELOG.md COLLABORATOR_GUIDE.md CONTRIBUTING.md GOVERNANCE.md LICENSE README.md ROADMAP.md WORKING_GROUPS.md"
+DOCS="AUTHORS CHANGELOG.md COLLABORATOR_GUIDE.md CONTRIBUTING.md GOVERNANCE.md LICENSE README.md"
 
 if [ "$ARCH" = "i486" ]; then
   SLKCFLAGS="-O2 -march=i486 -mtune=i686"
@@ -64,7 +64,7 @@ rm -rf $PKG
 mkdir -p $TMP $PKG $OUTPUT
 cd $TMP
 rm -rf $SRCNAM-$VERSION
-tar xvf $CWD/v$VERSION.tar.gz || tar xvf $CWD/$SRCNAM-$VERSION.tar.gz
+tar xvf $CWD/v$VERSION.tar.?z || tar xvf $CWD/$SRCNAM-$VERSION.tar.?z
 cd $SRCNAM-$VERSION
 chown -R root:root .
 find -L . \
