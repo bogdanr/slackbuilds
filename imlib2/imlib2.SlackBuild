@@ -1,30 +1,29 @@
 #!/bin/sh
+# Slackware build script for imlib2
 
-# Slackware build script for dmenu
-
-# Copyright (c) 2008, Antonio Hernández Blas <hba.nihilismus@gmail.com>
+# Copyright 2006-2009 Chess Griffin <chess@chessgriffin.com>
+# Copyright 2011 Grigorios Bouzakis <grbzks@imap.cc>
+# Copyright 2011-2017 Ryan P.C. McQuen | Everett, WA | ryanpcmcquen@member.fsf.org
+# Copyright 2017-2018 Willy Sudiarto Raharjo <willysr@slackbuilds.org>
 # All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# 1.- Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
+# Permission to use, copy, modify, and distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright
+# notice and this permission notice appear in all copies.
 #
-# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY
-# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# AUTHORS AND COPYRIGHT HOLDERS AND THEIR CONTRIBUTORS BE LIABLE FOR ANY
 # DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 # (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 # LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Modified by Phillip Warner for version >= 4.0
-
-PRGNAM=dmenu
-VERSION=${VERSION:-4.8}
+PRGNAM=imlib2
+VERSION=${VERSION:-1.5.1}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -55,6 +54,8 @@ else
   LIBDIRSUFFIX=""
 fi
 
+DOCS="AUTHORS COPYING COPYING-PLAIN ChangeLog INSTALL README TODO"
+
 set -e
 
 rm -rf $PKG
@@ -70,26 +71,28 @@ find -L . \
  \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
-# Fixup the CFLAGS and LIBDIR settings to prevent multilib conflicts
-patch -p1 < $CWD/dmenu-4.8-libdir_cflags_fixups.diff
+if ! grep -q "my_libs" configure.ac 2>/dev/null; then
+  sed -i 's|@my_libs@||' $PRGNAM-config.in
+fi
 
-make install \
-  OPTS="$SLKCFLAGS" \
-  PREFIX=/usr \
-  LIBDIR=/usr/lib${LIBDIRSUFFIX} \
-  MANPREFIX=/usr/man \
-  X11INC=/usr/include \
-  X11LIB=/usr/lib${LIBDIRSUFFIX}/X11 \
-  DESTDIR=$PKG
+CFLAGS="$SLKCFLAGS" \
+CXXFLAGS="$SLKCFLAGS" \
+./configure \
+  --prefix=/usr \
+  --libdir=/usr/lib${LIBDIRSUFFIX} \
+  --sysconfdir=/etc \
+  --localstatedir=/var \
+  --docdir=/usr/doc/$PRGNAM-$VERSION \
+  --disable-static
+
+make
+make install DESTDIR=$PKG
 
 find $PKG -print0 | xargs -0 file | grep -e "executable" -e "shared object" | grep ELF \
   | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
 
-find $PKG/usr/man -type f -exec gzip -9 {} \;
-for i in $(find $PKG/usr/man -type l) ; do ln -s $(readlink $i).gz $i.gz ; rm $i ; done
-
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a LICENSE README $PKG/usr/doc/$PRGNAM-$VERSION
+cp -a $DOCS $PKG/usr/doc/$PRGNAM-$VERSION
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 
 mkdir -p $PKG/install
