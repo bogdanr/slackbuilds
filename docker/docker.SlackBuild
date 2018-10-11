@@ -106,6 +106,8 @@ ln -s tini-static $PKG/usr/bin/docker-init
 install -D -m 0644 $CWD/config/docker.default $PKG/etc/default/docker.new
 install -D -m 0644 $CWD/config/docker.logrotate $PKG/etc/logrotate.d/docker.new
 install -D -m 0644 $CWD/config/rc.docker $PKG/etc/rc.d/rc.docker.new
+install -D -m 0644 $CWD/config/systemd.socket $PKG/lib/systemd/system/
+install -D -m 0644 $CWD/config/systemd.service $PKG/lib/systemd/system/
 
 # Install udev rules.
 install -D -m 0644 components/engine/contrib/udev/80-docker.rules \
