@@ -22,7 +22,7 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=spice-gtk
-VERSION=${VERSION:-0.33}
+VERSION=${VERSION:-0.35}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -94,6 +94,7 @@ CXXFLAGS="$SLKCFLAGS" \
   --enable-shared \
   --with-gtk=$gtkver.0 \
   --enable-pulse \
+  --disable-celt051 \
   --enable-gstaudio \
   --disable-maintainer-mode \
   --${usbredir}able-usbredir
