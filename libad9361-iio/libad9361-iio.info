@@ -1,5 +1,5 @@
 PRGNAM="libad9361-iio"
-VERSION="0.1"
+VERSION="0.2"
 HOMEPAGE="https://github.com/analogdevicesinc/libad9361-iio"
 DOWNLOAD="https://github.com/analogdevicesinc/libad9361-iio/archive/master.tar.gz"
 MD5SUM="3f328be76db5b50b699b0e7b64c6932f"
