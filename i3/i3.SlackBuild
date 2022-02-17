@@ -27,7 +27,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=i3
-VERSION=${VERSION:-4.15}
+VERSION=${VERSION:-4.18.3}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -72,6 +72,10 @@ find -L . \
   -o -perm 511 \) -exec chmod 755 {} \; -o \
  \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
+  
+autoreconf -fi
+
+cat ${CWD}/add_HAVE_strndup.diff | patch -p0 || exit
 
 mkdir -p build
 ( cd build
@@ -107,9 +111,6 @@ mkdir -p $PKG/etc/X11/xinit
 cat $CWD/xinitrc.i3 > $PKG/etc/X11/xinit/xinitrc.i3
 chmod 0755 $PKG/etc/X11/xinit/xinitrc.i3
 
-# man pages
-find $PKG/usr/man -type f -exec gzip -9 {} +
-
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION/html $PKG/usr/doc/$PRGNAM-$VERSION/txt
 cp -a DEPENDS LICENSE RELEASE-NOTES-* $PKG/usr/doc/$PRGNAM-$VERSION
 cp -a docs/* $PKG/usr/doc/$PRGNAM-$VERSION/txt
@@ -117,6 +118,15 @@ cp -a docs/* $PKG/usr/doc/$PRGNAM-$VERSION/txt
   mv *.html *.png *.css ../html/
   rm i3-pod2html *.conf *.dia
 )
+
+find $PKG -name perllocal.pod -o -name ".packlist" -o -name "*.bs" | xargs rm -f || true
+
+# man pages
+find $PKG/usr/man -type f -exec gzip -9 {} +
+for i in $( find $PKG/usr/man -type l ) ; do ln -s $( readlink $i ).gz $i.gz ; rm $i ; done
+
+find $PKG -depth -type d -empty -delete || true
+
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 
 mkdir -p $PKG/install
