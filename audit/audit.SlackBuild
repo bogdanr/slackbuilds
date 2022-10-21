@@ -23,7 +23,7 @@
 #   SUCH DAMAGE.
 
 PRGNAM=audit
-VERSION=${VERSION:-2.3.6}
+VERSION=${VERSION:-3.0.9}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -80,16 +80,13 @@ CFLAGS="$SLKCFLAGS" \
   --program-prefix= \
   --program-suffix= \
   --sbindir=/sbin \
-  --build=$ARCH-slackware-linux
+  --disable-zos-remote
 
 make
 make DESTDIR=$PKG install
 
 find $PKG | xargs file | grep -e "executable" -e "shared object" \
   | grep ELF | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
-
-# audispd must be 0750 to run
-chmod 0750 $PKG/sbin/audispd
 
 mkdir -p $PKG/etc/rc.d
 mv $PKG/etc/sysconfig/auditd $PKG/etc/rc.d/rc.auditd.conf.new

@@ -23,7 +23,7 @@
 #  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=pysetuptools
-VERSION=${VERSION:-3.4.4}
+VERSION=${VERSION:-22.0.5}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -61,7 +61,6 @@ rm -f setuptools/*.exe
 python setup.py install --root=$PKG
 
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a *.txt $PKG/usr/doc/$PRGNAM-$VERSION
 find $PKG/usr/doc/$PRGNAM-$VERSION -type f -exec chmod 0644 {} \;
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 

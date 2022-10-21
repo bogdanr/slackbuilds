@@ -25,7 +25,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PRGNAM=qemu
-VERSION=${VERSION:-2.10.1}
+VERSION=${VERSION:-4.2.0}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 
@@ -129,7 +129,7 @@ CXXFLAGS="$SLKCFLAGS" \
   $with_usbredir \
   $with_fdt
 
-make V=1 OS_CFLAGS="$SLKCFLAGS"
+make V=1 -j 8 OS_CFLAGS="$SLKCFLAGS"
 
 make install DESTDIR=$PKG
 
@@ -153,7 +153,7 @@ fi
 
 # Add docs to the proper location
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a Changelog COPYING* LICENSE MAINTAINERS README qemu-*.html docs/* \
+cp -a Changelog COPYING* LICENSE MAINTAINERS docs/* \
   $PKG/usr/doc/$PRGNAM-$VERSION
 
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild

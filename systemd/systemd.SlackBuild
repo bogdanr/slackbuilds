@@ -1,49 +1,61 @@
 #!/bin/sh
-
-# Slackware build script for systemd
-
-# Copyright 2013 - 2015 Bogdan Radulescu, Bucharest, Romania
+#set -x
+# Copyright 2013-2017  Bart van der Hall, Almere, NL
 # All rights reserved.
 #
-# Redistribution and use of this script, with or without modification, is
-# permitted provided that the following conditions are met:
+#   Permission to use, copy, modify, and distribute this software for
+#   any purpose with or without fee is hereby granted, provided that
+#   the above copyright notice and this permission notice appear in all
+#   copies.
 #
-# 1. Redistributions of this script must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
+#   THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+#   WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+#   MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+#   IN NO EVENT SHALL THE AUTHORS AND COPYRIGHT HOLDERS AND THEIR
+#   CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+#   USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+#   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+#   OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#   SUCH DAMAGE.
+# -----------------------------------------------------------------------------
 #
-#  THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR IMPLIED
-#  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-#  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO
-#  EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-#  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-#  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-#  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-#  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-#  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Slackware SlackBuild script for systemd
+#
+# http://www.freedesktop.org/wiki/Software/systemd
+#
 
-PRGNAM=systemd
-VERSION=${VERSION:-232}
+PKGNAM=systemd
+VERSION=${VERSION:-$(ls $PKGNAM-*.tar.?z | cut -d - -f 2 | rev | cut -f 3- -d . | rev | tail -1)}
 BUILD=${BUILD:-1}
-TAG=${TAG:-_SBo}
+TAG=${TAG:-_dlack}
 
-# Automatically determine the architecture we're building on:
+# Set YES to set systemd as default init
+SBO_INIT=${SBO_INIT:-YES}
+
+# If you have set NO for default init, you need to change your boot loader startup
+# Add the kernel parameter " init=/lib/systemd/systemd"
+
 if [ -z "$ARCH" ]; then
   case "$( uname -m )" in
     i?86) ARCH=i686 ;;
     arm*) ARCH=arm ;;
-    # Unless $ARCH is already set, use uname -m for all other archs:
        *) ARCH=$( uname -m ) ;;
   esac
 fi
 
-CWD=$(pwd)
-TMP=${TMP:-/tmp/SBo}	# For consistency's sake, use this
-PKG=$TMP/package-$PRGNAM
-OUTPUT=${OUTPUT:-/tmp}	# Drop the package in /tmp
+NUMJOBS=${NUMJOBS:--j7}
 
-if [ "$ARCH" = "i486" ]; then
-  SLKCFLAGS="-O2 -march=i486 -mtune=i686"
+CWD=$(pwd)
+TMP=${TMP:-/tmp/dlackware}
+PKG=$TMP/package-$PKGNAM
+BUILDDIR=$TMP/$PKGNAM-$VERSION/build-$PKGNAM
+OUTPUT=${OUTPUT:-/var/cache/dlackware}
+
+if [ "$ARCH" = "i586" ]; then
+  SLKCFLAGS="-O2 -march=i586 -mtune=i686"
   LIBDIRSUFFIX=""
 elif [ "$ARCH" = "i686" ]; then
   SLKCFLAGS="-O2 -march=i686 -mtune=i686"
@@ -58,12 +70,13 @@ fi
 
 set -e # Exit on most errors
 
-rm -rf $PKG
+rm -rf $TMP
 mkdir -p $TMP $PKG $OUTPUT
 cd $TMP
-rm -rf $PRGNAM-$VERSION
-tar xvf $CWD/$PRGNAM-$VERSION.tar.?z
-cd $PRGNAM-$VERSION
+rm -rf $PKGNAM-$VERSION
+tar xvf $CWD/$PKGNAM-$VERSION.tar.?z
+cd $PKGNAM-$VERSION
+
 chown -R root:root .
 find . \
  \( -perm 777 -o -perm 775 -o -perm 711 -o -perm 555 -o -perm 511 \) \
@@ -71,53 +84,340 @@ find . \
  \( -perm 666 -o -perm 664 -o -perm 600 -o -perm 444 -o -perm 440 -o -perm 400 \) \
  -exec chmod 644 {} \;
 
-./autogen.sh
+#patch -p1 --verbose -i $CWD/patches/60-cdrom_id.rules.diff
+#patch -p1 --verbose -i $CWD/patches/Don-t-enable-audit-by-default.patch
 
-CFLAGS="$SLKCFLAGS" \
-CXXFLAGS="$SLKCFLAGS" \
-./configure \
-  --prefix=/usr \
+# Force file regeneration
+( cd units
+  for i in *.in ;do
+    rm -fv ${i%.in}
+  done
+)
+
+find src/ -name '*-name.gperf' -print -delete
+find src/ \( -name '*-to-name.h' -o -name '*-from-name.h' \) -print -delete
+
+sed -i \
+  -e 's|@RC_LOCAL_SCRIPT_PATH_START@|/etc/rc.d/rc.local|g' \
+  -e 's|@RC_LOCAL_SCRIPT_PATH_STOP@|/etc/rc.d/rc.local_shutdown|g' \
+  -e '/^ConditionFileIsExecutable=/aConditionFileIsExecutable=/etc/rc.d/rc.local_shutdown' \
+  -e '/^After=/s|$| local-fs.target|g' \
+  -e '/^ExecStart/s| start||g' \
+  -e 's|^Type=.*$|ExecStop=/etc/rc.d/rc.local_shutdown|g' \
+  units/rc-local.service.in || exit 1
+
+sed -i -e '/^exec_prefix=/s|=.*$|=/|g' \
+  src/libudev/libudev.pc.in || exit 1
+
+#sed -i -e '/udevadm/s|@rootbindir@|/sbin|g' \
+#  src/login/71-seat.rules.in || exit 1
+
+# Slackware file is upper case
+#sed -i -e 's|/etc/hostname|/etc/HOSTNAME|g' \
+#  src/hostname/hostnamed.c src/core/hostname-setup.c \
+#  man/{hostname,machine-info}.xml man/hostnamectl.xml || exit 1
+
+# This should be multilib aware...
+sed -i -e "/locale/s|/lib/|/lib${LIBDIRSUFFIX}/|g" \
+src/locale/localectl.c || exit 1
+
+
+mkdir -p ${PKG}/lib/udev/rules.d
+mkdir -p ${PKG}/run
+
+find . -name "*.[1-8]" -exec touch '{}' ';'
+
+export PYTHON=python3
+
+mkdir -p build
+cd build
+
+meson --prefix=/usr \
   --libdir=/usr/lib${LIBDIRSUFFIX} \
+  --buildtype=release \
   --sysconfdir=/etc \
   --localstatedir=/var \
+  --infodir=/usr/info \
   --mandir=/usr/man \
-  --docdir=/usr/doc/$PRGNAM-$VERSION \
-  --disable-gtk-doc-html \
-  --with-rootprefix= \
-  --with-rootlibdir=/lib${LIBDIRSUFFIX} \
-  --enable-split-usr \
-  --enable-compat-libs \
-  --enable-kdbus \
-  --disable-ldconfig
+  -Drootprefix=/ \
+  -Drootlibdir=/lib${LIBDIRSUFFIX} \
+  -Dlink-udev-shared=true \
+  -Dsysvinit-path=/etc/rc.d \
+  -Dsysvrcnd-path=/etc/rc.d \
+  -Drc-local=/etc/rc.d/rc.local \
+  -Dkmod=true \
+  -Dxkbcommon=true \
+  -Dblkid=true \
+  -Dima=true \
+  -Dselinux=false \
+  -Dapparmor=false \
+  -Dpolkit=true \
+  -Dxz=true \
+  -Dzlib=true \
+  -Dbzip2=true \
+  -Dpam=true \
+  -Dacl=true \
+  -Dgcrypt=true \
+  -Daudit=false \
+  -Delfutils=true \
+  -Dlibcryptsetup=true \
+  -Delfutils=true \
+  -Dgnutls=true \
+  -Dmicrohttpd=false \
+  -Dlibidn2=true \
+  -Dlibiptc=true \
+  -Dlibcurl=true \
+  -Dtpm=true \
+  -Defi=false \
+  -Dhwdb=true \
+  -Dsysusers=true \
+  -Ddefault-kill-user-processes=false \
+  -Dtests=unsafe \
+  -Dinstall-tests=false \
+  -Dtty-gid=5 \
+  -Dusers-gid=100 \
+  -Dnobody-user=nobody \
+  -Dnobody-group=nobody \
+  -Dsplit-usr=true \
+  -Dsplit-bin=true \
+  -Db_lto=true \
+  -Db_ndebug=false \
+  -Dman=true \
+  -Dsystem-uid-max=999 \
+  -Dsystem-gid-max=999 \
+  -Dnobody-user=systemd-nobody \
+  -Dnobody-group=systemd-nobody \
+  -Drpmmacrosdir=no \
+  -Dtelinit-path=/sbin/telinit \
+  -Ddbuspolicydir=/usr/share/dbus-1/system.d \
+  -Ddbussessionservicedir=/usr/share/dbus-1/session.d \
+  -Ddbussystemservicedir=/usr/share/dbus-1/system-services \
+  -Dpkgconfigdatadir=/usr/lib${LIBDIRSUFFIX}/pkgconfig \
+  -Dpkgconfiglibdir=/usr/lib${LIBDIRSUFFIX}/pkgconfig \
+  -Dpamlibdir=/lib${LIBDIRSUFFIX}/security \
+  -Dpamconfdir=/etc/pam.d \
+  -Dpkgconfiglibdir=/usr/lib${LIBDIRSUFFIX}/pkgconfig || exit 1
+#  --build=$ARCH-slackware-linux || exit 1
 
-# Compile the application and install it into the $PKG directory
-make -j4
-make install DESTDIR=$PKG
+ninja || exit 1
+DESTDIR=$PKG ninja install || exit 1
 
-groupadd -f -g 60 systemd-journal
-groupadd -f -g 61 systemd-timesync
+cd ..
 
-# Strip binaries and libraries - this can be done with 'make install-strip'
-# in many source trees, and that's usually acceptable if so, but if not,
-# use this:
-find $PKG -print0 | xargs -0 file | grep -e "executable" -e "shared object" | grep ELF \
-  | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
+rm -rf ${PKG}/etc/init.d
+rm -rf ${PKG}/etc/rc.d/init.d
 
-# Compress man pages
-# If the man pages are installed to /usr/share/man instead, you'll need to either
-# add the --mandir=/usr/man flag to configure or move them manually after the
-# make install process is run.
-find $PKG/usr/man -type f -exec gzip -9 {} \;
-for i in $( find $PKG/usr/man -type l ) ; do ln -s $( readlink $i ).gz $i.gz ; rm $i ; done
+# Good to have on path
+mkdir -p ${PKG}/sbin
+( cd ${PKG}/sbin
+  ln -s ../lib/udev/scsi_id scsi_id || exit 1
+  ln -s ../lib/systemd/systemd-udevd udevd || exit 1
+) || exit 1
 
-mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a NEWS README TODO $PKG/usr/doc/$PRGNAM-$VERSION
-cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
+mv ${PKG}/bin/udevadm ${PKG}/sbin/ || exit 1
+ln -s ../sbin/udevadm ${PKG}/bin/udevadm
 
-# Copy the slack-desc (and a custom doinst.sh if necessary) into ./install
+ln -s ../systemd/systemd-udevd ${PKG}/lib/udev/udevd || exit 1
+
+find $PKG | xargs file | grep -e "executable" -e "shared object" \
+  | grep ELF | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null
+
+################################### systemd ####################################
+# rc.local and rc.local_shutdown
+################################################################################
+
+install -pm0644 units/rc-local.service.in \
+  ${PKG}/lib/systemd/system/rc-local.service || exit 1
+ln -s ../rc-local.service \
+  ${PKG}/lib/systemd/system/multi-user.target.wants/rc-local.service || exit 1
+
+#install -pm0644 tmpfiles.d/legacy.conf ${PKG}/usr/lib/tmpfiles.d/ || exit 1
+
+mv ${PKG}/lib/systemd/systemd ${PKG}/lib/systemd/systemd.new || exit 1
+chmod 0755 ${PKG}/lib/systemd/systemd.new
+ln -sf ../lib/systemd/systemd ${PKG}/bin/systemd || exit 1
+
+install -pm0644 ${CWD}/config/services/var-lock.mount ${PKG}/lib/systemd/system/ || exit 1
+install -pm0644 ${CWD}/config/services/var-run.mount ${PKG}/lib/systemd/system/ || exit 1
+
+ln -sf ../var-lock.mount \
+  ${PKG}/lib/systemd/system/local-fs.target.wants/var-lock.mount || exit 1
+ln -sf ../var-run.mount \
+  ${PKG}/lib/systemd/system/local-fs.target.wants/var-run.mount || exit 1
+
+ln -sf ../lib/systemd/systemd ${PKG}/bin/systemd
+ln -sf ../../../dev/null ${PKG}/etc/udev/rules.d/80-net-setup-link.rules
+
+mv ${PKG}/etc/pam.d/systemd-user ${PKG}/etc/pam.d/systemd-user.new || exit 1
+
+#touch ${PKG}/etc/hostname.new
+touch ${PKG}/etc/vconsole.conf.new
+touch ${PKG}/etc/locale.conf.new
+touch ${PKG}/etc/machine-id.new
+touch ${PKG}/etc/machine-info.new
+
+mkdir -p ${PKG}/{etc,lib}/systemd/system-preset
+mkdir -p ${PKG}/{etc,lib}/systemd/user-preset
+mkdir -p ${PKG}/{etc,lib}/systemd/network
+
+# Make sure the shutdown/sleep drop-in dirs exist
+mkdir -p ${PKG}/lib/systemd/system-shutdown/
+mkdir -p ${PKG}/lib/systemd/system-sleep/
+
+# Make sure the NTP units dir exists
+mkdir -p ${PKG}/usr/lib/systemd/ntp-units.d/
+
+# Make sure directories in /var exist
+mkdir -p ${PKG}/var/lib/systemd/coredump
+mkdir -p ${PKG}/var/lib/systemd/catalog
+mkdir -p ${PKG}/var/log
+mkdir -p ${PKG}/var/run
+mkdir -p ${PKG}/var/lib/systemd/backlight
+mkdir -p ${PKG}/var/lib/systemd/rfkill
+mkdir -p ${PKG}/var/lib/systemd/linger
+mkdir -p ${PKG}/var/lib/private
+mkdir -p ${PKG}/var/log/private
+mkdir -p ${PKG}/var/cache/private
+mkdir -p ${PKG}/var/lib/private/systemd/journal-upload
+mkdir -p ${PKG}/var/lib/systemd/timesync
+ln -s ../private/systemd/journal-upload ${PKG}/var/lib/systemd/journal-upload
+mkdir -p ${PKG}/var/log/journal
+touch ${PKG}/var/lib/systemd/random-seed.new
+touch ${PKG}/var/lib/systemd/timesync/clock.new
+touch ${PKG}/var/lib/private/systemd/journal-upload/state.new
+touch ${PKG}/var/lib/systemd/catalog/database.new
+touch ${PKG}/etc/udev/hwdb.bin
+
+# Make sure these directories are properly owned
+mkdir -p ${PKG}/lib/systemd/system/basic.target.wants
+mkdir -p ${PKG}/etc/systemd/system/basic.target.wants
+mkdir -p ${PKG}/lib/systemd/system/default.target.wants
+mkdir -p ${PKG}/etc/systemd/system/default.target.wants
+mkdir -p ${PKG}/lib/systemd/system/dbus.target.wants
+mkdir -p ${PKG}/etc/systemd/system/dbus.target.wants
+#mkdir -p ${PKG}/lib/systemd/system/graphical.target.wants
+mkdir -p ${PKG}/etc/systemd/system/graphical.target.wants
+#mkdir -p ${PKG}/lib/systemd/system/local-fs.target.wants
+mkdir -p ${PKG}/etc/systemd/system/local-fs.target.wants
+#mkdir -p ${PKG}/lib/systemd/system/multi-user.target.wants
+mkdir -p ${PKG}/etc/systemd/system/multi-user.target.wants
+#mkdir -p ${PKG}/lib/systemd/system/network.target.wants
+mkdir -p ${PKG}/etc/systemd/system/network.target.wants
+#mkdir -p ${PKG}/lib/systemd/system/shutdown.target.wants
+mkdir -p ${PKG}/lib/systemd/system/syslog.target.wants
+
+# Make sure the user generators dir exists too
+mkdir -p ${PKG}/lib/systemd/system-generators
+mkdir -p ${PKG}/lib/systemd/user-generators
+
+# Removing executable from config files
+chmod -x ${PKG}/lib/systemd/system/*.target
+chmod -x ${PKG}/usr/lib/systemd/user/*.target
+
+# Mask legacy stuff
+ln -sf rescue.service ${PKG}/lib/systemd/system/single.service
+
+for file in journald resolved timesyncd logind system user ;do
+  mv ${PKG}/etc/systemd/${file}.conf ${PKG}/etc/systemd/${file}.conf.new || exit 1
+done
+
+echo 'd /run/console 755 root root' > ${PKG}/usr/lib/tmpfiles.d/console.conf || exit 1
+
+for file in ${CWD}/config/services/* ;do
+  install -m0644 ${file} \
+    ${PKG}/lib/systemd/system/ || exit 1
+done
+
+ln -s ../../../../lib/systemd/system/slackware-motd.service \
+  ${PKG}/etc/systemd/system/slackware-motd.service || exit 1
+ln -s ../../../../lib/systemd/system/slackware-lvm-init.service \
+  ${PKG}/etc/systemd/system/local-fs.target.wants/slackware-lvm-init.service || exit 1
+ln -sf ../../../../lib/systemd/system/display-manager.service \
+  ${PKG}/etc/systemd/system/graphical.target.wants/display-manager.service || exit 1
+
+rm -f ${PKG}/usr/lib/sysctl.d/50-coredump.conf
+
+################################ End of systemd ################################
+
+##################################### udev #####################################
+
+mkdir -p ${PKG}/etc/udev/{keymaps,rules.d} \
+  ${PKG}/lib/firmware \
+  ${PKG}/lib/modprobe.d \
+  ${PKG}/etc/modprobe.d \
+  ${PKG}/etc/rc.d
+
+install -pm0644 ${CWD}/config/rc.d/rc.local_shutdown.new ${PKG}/etc/rc.d/rc.local_shutdown.new || exit 1
+chmod 0755 ${PKG}/etc/rc.d/rc.local_shutdown.new || exit 1
+
+rm -f ${PKG}/etc/udev/udev.conf
+install -m0644 ${CWD}/config/udev.conf ${PKG}/etc/udev/udev.conf || exit 1
+
+# Install a standard google dns resolv
+install -m0644 $CWD/config/resolv.conf.eth0 ${PKG}/etc/resolv.conf.eth0 || exit 1
+install -m0644 $CWD/config/resolv.conf.eth0 ${PKG}/etc/resolv.conf.head || exit 1
+
+# Copy Slackware custom rules
+install -m0644 ${CWD}/config/rules.d/* ${PKG}/lib/udev/rules.d/ || exit 1
+
+# Install helper script that people can turn on their rc.local script
+# This so that all enabled services are still starting
+install -m0755 ${CWD}/config/rc.d/rc.Msystemd.new ${PKG}/etc/rc.d/rc.Msystemd.new
+
+# This is for proving fallback if you do a dualboot
+install -m0755 ${CWD}/config/rc.d/rc.udev.new \
+  ${PKG}/etc/rc.d/rc.udev.new || exit 1
+for file in ${CWD}/config/modprobe.d/*.conf ;do
+  install -m0644 ${file} \
+    ${PKG}/lib/modprobe.d/ || exit 1
+done
+
+install -pm0644 ${CWD}/config/modprobe.d/README ${PKG}/etc/modprobe.d/ || exit 1
+
+# Add some slack-scripts
+#for file in ${CWD}/config/slack-scripts/* ; do
+#  install -m0755 ${file} ${PKG}/lib/systemd/ || exit 1
+#done
+
+# Add various helper scripts:
+install -pm0644 ${CWD}/config/scripts/20-eth-dhcp.network ${PKG}/lib/systemd/network/ || exit 1
+
+chmod 755 ${PKG}/lib/udev/*
+
+
+################################# End of udev ##################################
+
+# Add a documentation directory:
+mkdir -p $PKG/usr/doc/$PKGNAM-$VERSION
+cp -a \
+  README NEWS TODO \
+  $PKG/usr/doc/$PKGNAM-$VERSION
+cat $CWD/$PKGNAM.SlackBuild > $PKG/usr/doc/$PKGNAM-$VERSION/$PKGNAM.SlackBuild
+
+# Compress and link manpages, if any:
+if [ -d ${PKG}/usr/share/man ]; then
+  mv ${PKG}/usr/share/man ${PKG}/usr/man
+  rmdir ${PKG}/usr/share
+fi
+if [ -d ${PKG}/usr/man ]; then
+  ( cd ${PKG}/usr/man
+    for manpagedir in $(find . -type d -name "man*") ; do
+      ( cd ${manpagedir}
+        for eachpage in $( find . -type l -maxdepth 1) ; do
+          ln -s $( readlink ${eachpage} ).gz ${eachpage}.gz
+          rm -f ${eachpage}
+        done
+        gzip -9 *.?
+        # Prevent errors
+        rm -f *.gz.gz
+      )
+    done
+  )
+fi
+
 mkdir -p $PKG/install
 cat $CWD/slack-desc > $PKG/install/slack-desc
 cat $CWD/doinst.sh > $PKG/install/doinst.sh
 
 cd $PKG
-/sbin/makepkg -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD.${PKGTYPE:-txz}
+/sbin/makepkg -l y -c n $OUTPUT/$PKGNAM-$VERSION-$ARCH-$BUILD.txz
