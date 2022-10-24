@@ -4,7 +4,7 @@
 # Written by Marcin Herda <mherda@slackword.net>
 
 PRGNAM=perl-AnyEvent
-VERSION=${VERSION:-7.15}
+VERSION=${VERSION:-7.17}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 

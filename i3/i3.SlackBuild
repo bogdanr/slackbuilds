@@ -1,13 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 
 # Slackware build script for i3wm.
 
 # Written by Eugene Wissner <belka.ew@gmail.com>
 # Updated by Eugene Suter <easuter@gmail.com>
 # Updated by Marcin Herda <mherda@slackword.net>
-# Updated by Bogdan Radulescu <bogdan@nimblex.net>
 # Cleaning up docs by ponce
-# Updated by Johannes Schoepfer
+# Updated by Bogdan Radulescu <bogdan@nimblex.net>
+# Copyright 2017 - 2018  Johannes Schoepfer, Germany
+# Updated by Emmanuel N. Millan, Argentina, 2019 - 2022
 #
 # Redistribution and use of this script, with or without modification, is
 # permitted provided that the following conditions are met:
@@ -26,10 +27,13 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+cd $(dirname $0) ; CWD=$(pwd)
+
 PRGNAM=i3
-VERSION=${VERSION:-4.18.3}
+VERSION=${VERSION:-4.21}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
+PKGTYPE=${PKGTYPE:-txz}
 
 if [ -z "$ARCH" ]; then
   case "$( uname -m )" in
@@ -39,7 +43,14 @@ if [ -z "$ARCH" ]; then
   esac
 fi
 
-CWD=$(pwd)
+# If the variable PRINT_PACKAGE_NAME is set, then this script will report what
+# the name of the created package would be, and then exit. This information
+# could be useful to other scripts.
+if [ ! -z "${PRINT_PACKAGE_NAME}" ]; then
+  echo "$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.$PKGTYPE"
+  exit 0
+fi
+
 TMP=${TMP:-/tmp/SBo}
 PKG=$TMP/package-$PRGNAM
 OUTPUT=${OUTPUT:-/tmp}
@@ -64,7 +75,7 @@ rm -rf $PKG
 mkdir -p $TMP $PKG $OUTPUT
 cd $TMP
 rm -rf $PRGNAM-$VERSION
-tar xvf $CWD/$PRGNAM-$VERSION.tar.bz2
+tar xvf $CWD/$PRGNAM-$VERSION.tar.xz
 cd $PRGNAM-$VERSION
 chown -R root:root .
 find -L . \
@@ -73,24 +84,22 @@ find -L . \
  \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
   
-autoreconf -fi
-
-cat ${CWD}/add_HAVE_strndup.diff | patch -p0 || exit
 
 mkdir -p build
 ( cd build
   CFLAGS="$SLKCFLAGS" \
-  ../configure \
-    --prefix=/usr \
-    --libdir=/usr/lib$LIBDIRSUFFIX \
-    --mandir=/usr/man \
-    --docdir=/usr/doc/$PRGNAM-$VERSION \
-    --sysconfdir=/etc \
-    --localstatedir=/var
-
-  CFLAGS="$SLKCFLAGS" make -j4
-  make install-strip DESTDIR=$PKG
+	  meson -Dmans=true \
+	  --prefix /usr \
+	  --libdir /usr/lib$LIBDIRSUFFIX \
+	  --mandir /usr/man \
+  	  --sysconfdir /etc \
+	  --localstatedir /var \
+	  ..
+  CFLAGS="$SLKCFLAGS" ninja
+  DESTDIR=$PKG ninja install
 )
+
+
 
 find $PKG -print0 | xargs -0 file | grep -e "executable" -e "shared object" | grep ELF \
   | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
@@ -119,7 +128,23 @@ cp -a docs/* $PKG/usr/doc/$PRGNAM-$VERSION/txt
   rm i3-pod2html *.conf *.dia
 )
 
+rm -r $PKG/usr/share/doc
+
+cd AnyEvent-I3
+
+perl Makefile.PL \
+  PREFIX=/usr \
+  INSTALLDIRS=vendor \
+  INSTALLVENDORMAN1DIR=/usr/man/man1 \
+  INSTALLVENDORMAN3DIR=/usr/man/man3
+make
+make test
+make install DESTDIR=$PKG
+
 find $PKG -name perllocal.pod -o -name ".packlist" -o -name "*.bs" | xargs rm -f || true
+
+mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION/AnyEvent-I3
+cp -a Changes README MANIFEST $PKG/usr/doc/$PRGNAM-$VERSION/AnyEvent-I3/
 
 # man pages
 find $PKG/usr/man -type f -exec gzip -9 {} +
@@ -134,4 +159,4 @@ cat $CWD/slack-desc > $PKG/install/slack-desc
 cat $CWD/doinst.sh > $PKG/install/doinst.sh
 
 cd $PKG
-/sbin/makepkg -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD.${PKGTYPE:-txz}
+/sbin/makepkg -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD.$PKGTYPE
