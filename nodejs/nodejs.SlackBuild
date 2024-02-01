@@ -28,14 +28,13 @@ cd $(dirname $0) ; CWD=$(pwd)
 
 PRGNAM=nodejs
 SRCNAM=node
-VERSION=${VERSION:-18.9.1}
+VERSION=${VERSION:-20.10.0}
 BUILD=${BUILD:-1}
-TAG=${TAG:-_SBo}
 PKGTYPE=${PKGTYPE:-txz}
 
 if [ -z "$ARCH" ]; then
   case "$( uname -m )" in
-    i?86) ARCH=i686 ;;
+    i?86) ARCH=i586 ;;
     arm*) ARCH=arm ;;
        *) ARCH=$( uname -m ) ;;
   esac
@@ -70,7 +69,7 @@ rm -rf $PKG
 mkdir -p $TMP $PKG $OUTPUT
 cd $TMP
 rm -rf $SRCNAM-v$VERSION
-tar xvf $CWD/$SRCNAM-v$VERSION.tar.xz
+tar xvf $CWD/$SRCNAM-v$VERSION.tar.gz
 cd $SRCNAM-v$VERSION
 chown -R root:root .
 find -L . \
@@ -93,6 +92,7 @@ sed -i "s|math.h|cmath|" src/node_crypto.cc
 ./configure \
   --prefix=/usr \
   --shared-zlib \
+  --shared-openssl \
   --ninja
 
 make CFLAGS="$SLKCFLAGS" CXXFLAGS="$SLKCFLAGS"
@@ -108,7 +108,7 @@ for i in $( find $PKG/usr/man -type l ) ; do ln -s $( readlink $i ).gz $i.gz ; r
 install -D -m 644 $CWD/npm.sh $PKG/usr/share/bash-completion/completions/npm
 
 mkdir -p $PKG/usr/doc/$PRGNAM-$VERSION
-cp -a AUTHORS LICENSE *.md $PKG/usr/doc/$PRGNAM-$VERSION
+cp -a LICENSE *.md $PKG/usr/doc/$PRGNAM-$VERSION
 cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
 
 mkdir -p $PKG/install
